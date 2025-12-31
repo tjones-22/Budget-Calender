@@ -1,3 +1,5 @@
+import AppDescriptionSection from "./components/AppDescriptionSection";
+
 export default function Home() {
   return (
     <div className="text-[20px] flex flex-col items-center justify-start gap-6 w-full h-auto p-3.5">
@@ -14,6 +16,7 @@ export default function Home() {
           Sign up
         </button>
       </div>
+      <AppDescriptionSection />
     </div>
   );
 }
