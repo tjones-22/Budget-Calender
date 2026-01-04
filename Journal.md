@@ -13,4 +13,5 @@ I updated my node and npm to avoid bugs with old packages. I know how I want my 
 
 My idea is to have a landing page that is simple but guides the user through the set up process. Just a greeting and login/signup buttons will do. But it needs one more thing cause there is a lot of empty space. Maybe something like an app description section that shows on a basic level what the app is for. 
 
-
+## Day 3
+Today I built out the signup and login flow. On the frontend I made matching forms with error states, and I wired up the form actions so the server handles the submit and can redirect on success. On the backend I created the signup controller/service, added validation for the phone format, and started storing users in a CSV file so I can keep everything free for now. I also learned that GET requests need query params (not a body), and that server action logs show up in the Next terminal instead of the browser console.
