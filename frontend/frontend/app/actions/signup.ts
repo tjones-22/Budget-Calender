@@ -47,8 +47,17 @@ export async function signupAction(
     });
 
     if (!response.ok) {
+      let errorMessage = `Error: ${response.statusText}`;
+      try {
+        const data = (await response.json()) as { message?: string };
+        if (data?.message) {
+          errorMessage = data.message;
+        }
+      } catch {
+        // Ignore JSON parsing errors and fall back to status text.
+      }
       return {
-        error: `Error: ${response.statusText}`,
+        error: errorMessage,
         success: "",
       };
     }

@@ -21,27 +21,39 @@ export async function loginAction(
     return { error: "Username and password are required", success: "" };
   }
 
-  const query = new URLSearchParams({ username, password }).toString();
-
+  let response: Response;
   try {
-    const response = await fetch(
-      `http://localhost:3001/api/signup?${query}`,
-      {
-        method: "GET",
+    response = await fetch(`http://localhost:3001/api/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
-
-    if (!response.ok) {
-      return {
-        error: `Error: ${response.statusText}`,
-        success: "",
-      };
-    }
+      body: JSON.stringify({ username, password }),
+      credentials: "include",
+    });
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Network error",
       success: "",
     };
+  }
+
+  if (!response.ok) {
+    return {
+      error: `Error: ${response.statusText}`,
+      success: "",
+    };
+  }
+
+  let resData: { message?: string } | null = null;
+  try {
+    resData = (await response.json()) as { message?: string };
+  } catch {
+    resData = null;
+  }
+
+  if (resData?.message === "Invalid Credentials") {
+    return { error: resData.message, success: "" };
   }
 
   redirect("/");
