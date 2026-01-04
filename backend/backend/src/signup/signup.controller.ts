@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { SignupService } from './signup.service';
 import { Post, HttpCode, Body } from '@nestjs/common';
 import { SignupDTO } from './dto/signup.dto';
@@ -21,7 +21,10 @@ export class SignupController {
 
   @Get()
   @HttpCode(200)
-  async findUser(@Body() signupDto: SignupDTO) {
-    return this.signupService.findUser(signupDto.username);
+  async findUser(@Query('username') username?: string) {
+    if (!username) {
+      throw new BadRequestException('Username is required');
+    }
+    return this.signupService.findUser(username);
   }
 }
