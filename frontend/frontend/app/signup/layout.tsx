@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,7 +18,7 @@ const interFont = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Budget Calander - Home",
+  title: "Budget Calander - Sign Up",
   description: "Create your budget and see it in a calender view",
 };
 
@@ -28,12 +28,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${interFont.variable}`}
-      >
+    <div>
+      <div className={`${geistSans.variable} ${geistMono.variable} ${interFont.variable}`}>
         {children}
-      </body>
-    </html>
+      </div>
+    </div>
   );
 }

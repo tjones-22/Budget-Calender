@@ -1,4 +1,5 @@
 import AppDescriptionSection from "./components/AppDescriptionSection";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -8,13 +9,20 @@ export default function Home() {
       </h1>
 
       <div className="flex flex-row justify-evenly items-center w-screen h-auto">
-        <button className="rounded-full bg-slate-900 px-6 py-2.5 text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
-          Log in
-        </button>
+        <Link
+          className="rounded-full bg-slate-900 px-6 py-2.5 text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+          href={"/login"}
+        >
+          Login
+          </Link>
 
-        <button className="rounded-full border border-slate-900 bg-white px-6 py-2.5 text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
-          Sign up
-        </button>
+
+        <Link
+          className="rounded-full bg-slate-900 px-6 py-2.5 text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+          href={"/signup"}
+        >
+          Sign Up
+          </Link>
       </div>
       <AppDescriptionSection />
     </div>

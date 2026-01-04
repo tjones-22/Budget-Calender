@@ -3,4 +3,6 @@
 
 :root {
   background-color: #f6f3f0;
+  focus-visible:outline-none
 }
+
