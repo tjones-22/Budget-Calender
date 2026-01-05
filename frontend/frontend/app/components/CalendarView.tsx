@@ -315,7 +315,7 @@ const CalendarView = ({
       setIsSaving(true);
       setError("");
       try {
-        const response = await fetch("http://localhost:3001/api/calendar/recurring", {
+        const response = await fetch("https://budget-calender.onrender.com/api/calendar/recurring", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -380,7 +380,7 @@ const CalendarView = ({
     setIsSaving(true);
     setError("");
     try {
-      const response = await fetch("http://localhost:3001/api/calendar/day", {
+      const response = await fetch("https://budget-calender.onrender.com/api/calendar/day", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -453,7 +453,7 @@ const CalendarView = ({
     setError("");
     try {
       const response = await fetch(
-        "http://localhost:3001/api/calendar/recurring/delete",
+        "https://budget-calender.onrender.com/api/calendar/recurring/delete",
         {
           method: "POST",
           headers: {
@@ -481,7 +481,7 @@ const CalendarView = ({
   ) => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/calendar?year=${yearValue}&month=${monthValue}`,
+        `https://budget-calender.onrender.com/api/calendar?year=${yearValue}&month=${monthValue}`,
       );
       if (!response.ok) {
         setError(`Error: ${response.statusText}`);

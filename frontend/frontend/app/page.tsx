@@ -35,7 +35,7 @@ async function getUserProfile(): Promise<UserProfile | null> {
   }
 
   try {
-    const response = await fetch("http://localhost:3001/api/login/me", {
+    const response = await fetch("https://budget-calender.onrender.com/api/login/me", {
       headers: {
         Cookie: `session=${sessionCookie.value}`,
       },
@@ -63,7 +63,7 @@ async function getCalendar(): Promise<CalendarResponse | null> {
   const month = today.getMonth() + 1;
   try {
     const response = await fetch(
-      `http://localhost:3001/api/calendar?year=${year}&month=${month}`,
+      `https://budget-calender.onrender.com/api/calendar?year=${year}&month=${month}`,
       { cache: "no-store" },
     );
     if (!response.ok) {
@@ -84,7 +84,7 @@ export default async function Home() {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get("session");
     if (sessionCookie?.value) {
-      await fetch("http://localhost:3001/api/login/logout", {
+      await fetch("https://budget-calender.onrender.com/api/login/logout", {
         method: "POST",
         headers: {
           Cookie: `session=${sessionCookie.value}`,
