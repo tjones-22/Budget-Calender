@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export type LoginState = {
@@ -45,15 +46,32 @@ export async function loginAction(
     };
   }
 
-  let resData: { message?: string } | null = null;
+  let resData: { message?: string; sessionId?: string; expiresAt?: number } | null = null;
   try {
-    resData = (await response.json()) as { message?: string };
+    resData = (await response.json()) as {
+      message?: string;
+      sessionId?: string;
+      expiresAt?: number;
+    };
   } catch {
     resData = null;
   }
 
   if (resData?.message === "Invalid Credentials") {
     return { error: resData.message, success: "" };
+  }
+
+  if (resData?.sessionId) {
+    const maxAgeSeconds = resData.expiresAt
+      ? Math.max(0, Math.floor((resData.expiresAt - Date.now()) / 1000))
+      : 24 * 60 * 60;
+    cookies().set("session", resData.sessionId, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: maxAgeSeconds,
+    });
   }
 
   redirect("/");

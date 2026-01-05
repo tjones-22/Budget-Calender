@@ -5,6 +5,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
     origin: ['http://localhost:3000', 'https://budget-calender.vercel.app'],
+    allowedHeaders: ['Content-Type', 'x-session-id', 'authorization'],
     credentials: true,
   });
   await app.listen(process.env.PORT ?? 4000);

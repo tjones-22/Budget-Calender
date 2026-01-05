@@ -21,7 +21,7 @@ export class LoginController {
             return { message: 'Invalid Credentials' };
         }
 
-        const { sessionId } = await this.loginService.createSession(
+        const { sessionId, expiresAt } = await this.loginService.createSession(
             loginDto.username,
         );
 
@@ -32,7 +32,7 @@ export class LoginController {
             maxAge: 24 * 60 * 60 * 1000, // 24 hrs
         });
 
-        return { message: 'Logged in successfully' };
+        return { message: 'Logged in successfully', sessionId, expiresAt };
     }
 
     @Get('me')
@@ -41,7 +41,7 @@ export class LoginController {
         @Req() req: express.Request,
         @Res({ passthrough: true }) res: express.Response,
     ) {
-        const sessionId = this.getCookie(req.headers.cookie, 'session');
+        const sessionId = this.getSessionId(req);
         if (!sessionId) {
             res.status(401);
             return { user: null };
@@ -87,11 +87,26 @@ export class LoginController {
         @Req() req: express.Request,
         @Res({ passthrough: true }) res: express.Response,
     ) {
-        const sessionId = this.getCookie(req.headers.cookie, 'session');
+        const sessionId = this.getSessionId(req);
         if (sessionId) {
             this.loginService.deleteSession(sessionId);
         }
         res.clearCookie('session', { path: '/' });
         return { message: 'Logged out' };
+    }
+
+    private getSessionId(req: express.Request) {
+        const headerValue = req.headers['x-session-id'];
+        if (typeof headerValue === 'string' && headerValue.trim()) {
+            return headerValue.trim();
+        }
+        const authHeader = req.headers.authorization;
+        if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.slice('Bearer '.length).trim();
+            if (token) {
+                return token;
+            }
+        }
+        return this.getCookie(req.headers.cookie, 'session');
     }
 }

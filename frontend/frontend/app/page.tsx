@@ -37,7 +37,7 @@ async function getUserProfile(): Promise<UserProfile | null> {
   try {
     const response = await fetch("https://budget-calender.onrender.com/api/login/me", {
       headers: {
-        Cookie: `session=${sessionCookie.value}`,
+        "x-session-id": sessionCookie.value,
       },
       cache: "no-store",
     });
@@ -87,10 +87,11 @@ export default async function Home() {
       await fetch("https://budget-calender.onrender.com/api/login/logout", {
         method: "POST",
         headers: {
-          Cookie: `session=${sessionCookie.value}`,
+          "x-session-id": sessionCookie.value,
         },
       });
     }
+    cookieStore.delete("session");
     redirect("/");
   }
  
