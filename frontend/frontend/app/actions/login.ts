@@ -65,7 +65,8 @@ export async function loginAction(
     const maxAgeSeconds = resData.expiresAt
       ? Math.max(0, Math.floor((resData.expiresAt - Date.now()) / 1000))
       : 24 * 60 * 60;
-    cookies().set("session", resData.sessionId, {
+    const cookieStore = await cookies();
+    cookieStore.set("session", resData.sessionId, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
