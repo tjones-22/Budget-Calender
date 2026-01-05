@@ -15,3 +15,6 @@ My idea is to have a landing page that is simple but guides the user through the
 
 ## Day 3
 Today I built out the signup and login flow. On the frontend I made matching forms with error states, and I wired up the form actions so the server handles the submit and can redirect on success. On the backend I created the signup controller/service, added validation for the phone format, and started storing users in a CSV file so I can keep everything free for now. I also learned that GET requests need query params (not a body), and that server action logs show up in the Next terminal instead of the browser console.
+
+## Day 4
+Today I worked through the calendar math and recurring events. I updated the bank funds calculation to use the selected day, include same-day entries, and start the month’s balance from the first payday. I added recurring bills/paydays/purchases (weekly, biweekly, monthly) with a months-or-forever duration, auto-population, and delete-once or delete-all behavior. I also added a Savings account: a new signup field for initial savings, a new “Move to Savings” event type, a Bank Savings balance card, and savings totals in analytics and projections. On the backend I added recurring rules storage, expanded them into the calendar, and extended the CSV schema to include savings and recurring IDs.
