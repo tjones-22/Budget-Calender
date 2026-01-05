@@ -1,4 +1,9 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { LoginController } from './login.controller';
 import { LoginService } from './login.service';
 import { LoggerMiddleware } from '../middleware/login.middleware';
@@ -9,6 +14,8 @@ import { LoggerMiddleware } from '../middleware/login.middleware';
 })
 export class LoginModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes(LoginController);
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes({ path: 'api/login', method: RequestMethod.POST });
   }
 }

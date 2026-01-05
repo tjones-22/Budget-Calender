@@ -16,11 +16,23 @@ export async function signupAction(
   const usernameValue = formData.get("username");
   const passwordValue = formData.get("password");
   const phoneValue = formData.get("phone");
+  const initialFundsValue = formData.get("initialFunds");
+  const initialSavingsValue = formData.get("initialSavings");
+  const notifyBillsValue = formData.get("notifyBills");
+  const notifyPaydaysValue = formData.get("notifyPaydays");
 
   const name = typeof nameValue === "string" ? nameValue.trim() : "";
   const username = typeof usernameValue === "string" ? usernameValue.trim() : "";
   const password = typeof passwordValue === "string" ? passwordValue : "";
   const phone = typeof phoneValue === "string" ? phoneValue.trim() : "";
+  const initialFundsText =
+    typeof initialFundsValue === "string" ? initialFundsValue.trim() : "";
+  const initialFunds = Number(initialFundsText);
+  const initialSavingsText =
+    typeof initialSavingsValue === "string" ? initialSavingsValue.trim() : "";
+  const initialSavings = Number(initialSavingsText);
+  const notifyBills = notifyBillsValue === "on";
+  const notifyPaydays = notifyPaydaysValue === "on";
 
   if (!name || !username || !password || !phone) {
     return { error: "Please fill out all fields", success: "" };
@@ -28,6 +40,13 @@ export async function signupAction(
 
   if (password.length < 8) {
     return { error: "Password must be longer than 8 characters", success: "" };
+  }
+
+  if (!initialFundsText || Number.isNaN(initialFunds)) {
+    return { error: "Initial funds must be a valid number", success: "" };
+  }
+  if (!initialSavingsText || Number.isNaN(initialSavings)) {
+    return { error: "Initial savings must be a valid number", success: "" };
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
@@ -43,6 +62,10 @@ export async function signupAction(
         username,
         password: hashedPassword,
         phone,
+        initialFunds,
+        initialSavings,
+        notifyBills,
+        notifyPaydays,
       }),
     });
 
