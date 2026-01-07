@@ -165,10 +165,9 @@ export class GroupsService {
       return null;
     }
     const invite = invites[index];
-    invite.status = accept ? 'accepted' : 'declined';
-    invites[index] = invite;
+    invites.splice(index, 1);
     await this.writeInvites(invites);
-    return invite;
+    return { ...invite, status: accept ? 'accepted' : 'declined' };
   }
 
   async setMember(

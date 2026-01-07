@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MemberAccessPanel from "./MemberAccessPanel";
 
 type CalendarDay = {
@@ -561,6 +561,35 @@ const CalendarView = ({
   const layoutClass = isOwner
     ? "md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)]"
     : "md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]";
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleNextRefresh = () => {
+      const now = new Date();
+      const nextMidnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+        0,
+        0,
+        0,
+        0,
+      );
+      const msUntilNextMidnight = nextMidnight.getTime() - now.getTime();
+      timeoutId = setTimeout(() => {
+        loadMonth(activeYear, activeMonth);
+        scheduleNextRefresh();
+      }, Math.max(0, msUntilNextMidnight));
+    };
+
+    scheduleNextRefresh();
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [activeYear, activeMonth]);
 
   return (
     <section className="w-full max-w-6xl rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
