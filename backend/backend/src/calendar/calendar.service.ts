@@ -12,6 +12,7 @@ type CalendarEvent = {
 };
 
 type RecurringRule = {
+  groupId: string;
   id: string;
   type: 'bill' | 'payday' | 'purchase' | 'savings';
   name: string;
@@ -32,9 +33,10 @@ export class CalendarService {
     'recurring.csv',
   );
 
-  async getMonth(year: number, monthIndex: number) {
-    const events = await this.readEvents();
-    const recurringRules = await this.readRecurringRules();
+  async getMonth(year: number, monthIndex: number, groupId: string) {
+    const eventsByGroup = await this.readEventsByGroup();
+    const events = this.getGroupEvents(eventsByGroup, groupId);
+    const recurringRules = await this.readRecurringRulesForGroup(groupId);
     const recurringEvents = this.expandRecurringForMonth(
       year,
       monthIndex,
@@ -47,34 +49,41 @@ export class CalendarService {
 
   async upsertDay(
     date: string,
+    groupId: string,
     bills: { name: string; amount: number }[],
     paydays: { name: string; amount: number }[],
     purchases: { name: string; amount: number }[],
     savings: { name: string; amount: number }[] = [],
   ) {
-    const events = await this.readEvents();
+    const eventsByGroup = await this.readEventsByGroup();
+    const events = this.getGroupEvents(eventsByGroup, groupId);
     events.set(date, { bills, paydays, purchases, savings });
-    await this.writeEvents(events);
+    eventsByGroup.set(groupId, events);
+    await this.writeEventsByGroup(eventsByGroup);
   }
 
   async createRecurringRule(
-    rule: Omit<RecurringRule, 'id' | 'exceptions'>,
+    groupId: string,
+    rule: Omit<RecurringRule, 'id' | 'exceptions' | 'groupId'>,
   ): Promise<RecurringRule> {
     const existing = await this.readRecurringRules();
     const id = `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const nextRule: RecurringRule = { ...rule, id, exceptions: [] };
+    const nextRule: RecurringRule = { ...rule, id, groupId, exceptions: [] };
     existing.push(nextRule);
     await this.writeRecurringRules(existing);
     return nextRule;
   }
 
   async deleteRecurring(
+    groupId: string,
     recurringId: string,
     date: string,
     scope: 'one' | 'all',
   ) {
     const rules = await this.readRecurringRules();
-    const index = rules.findIndex((rule) => rule.id === recurringId);
+    const index = rules.findIndex(
+      (rule) => rule.id === recurringId && rule.groupId === groupId,
+    );
     if (index === -1) {
       return;
     }
@@ -90,7 +99,9 @@ export class CalendarService {
     await this.writeRecurringRules(rules);
   }
 
-  private async readEvents(): Promise<Map<string, CalendarEvent>> {
+  private async readEventsByGroup(): Promise<
+    Map<string, Map<string, CalendarEvent>>
+  > {
     try {
       const content = await readFile(this.filePath, 'utf8');
       if (!content.trim()) {
@@ -100,8 +111,10 @@ export class CalendarService {
         .split(/\r?\n/)
         .filter((line) => line.trim().length > 0)
         .map((line) => parseCsvLine(line));
-      const events = new Map<string, CalendarEvent>();
-      for (const [date, billsJson, paydaysJson, purchasesJson, savingsJson] of rows) {
+      const eventsByGroup = new Map<string, Map<string, CalendarEvent>>();
+      for (const row of rows) {
+        const { groupId, date, billsJson, paydaysJson, purchasesJson, savingsJson } =
+          this.parseEventRow(row);
         const billsRaw = billsJson ? (JSON.parse(billsJson) as unknown[]) : [];
         const paydaysRaw = paydaysJson
           ? (JSON.parse(paydaysJson) as unknown[])
@@ -116,9 +129,12 @@ export class CalendarService {
         const paydays = this.normalizeAmountItems(paydaysRaw);
         const purchases = this.normalizeAmountItems(purchasesRaw);
         const savings = this.normalizeAmountItems(savingsRaw);
-        events.set(date, { bills, paydays, purchases, savings });
+        const groupEvents =
+          eventsByGroup.get(groupId) ?? new Map<string, CalendarEvent>();
+        groupEvents.set(date, { bills, paydays, purchases, savings });
+        eventsByGroup.set(groupId, groupEvents);
       }
-      return events;
+      return eventsByGroup;
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
         return new Map();
@@ -127,19 +143,24 @@ export class CalendarService {
     }
   }
 
-  private async writeEvents(events: Map<string, CalendarEvent>) {
+  private async writeEventsByGroup(
+    eventsByGroup: Map<string, Map<string, CalendarEvent>>,
+  ) {
     const lines: string[] = [];
-    for (const [date, event] of events) {
-      const row = [
-        date,
-        JSON.stringify(event.bills ?? []),
-        JSON.stringify(event.paydays ?? []),
-        JSON.stringify(event.purchases ?? []),
-        JSON.stringify(event.savings ?? []),
-      ]
-        .map((value) => escapeCsv(value))
-        .join(',');
-      lines.push(row);
+    for (const [groupId, events] of eventsByGroup) {
+      for (const [date, event] of events) {
+        const row = [
+          groupId,
+          date,
+          JSON.stringify(event.bills ?? []),
+          JSON.stringify(event.paydays ?? []),
+          JSON.stringify(event.purchases ?? []),
+          JSON.stringify(event.savings ?? []),
+        ]
+          .map((value) => escapeCsv(value))
+          .join(',');
+        lines.push(row);
+      }
     }
     const output = lines.length > 0 ? `${lines.join('\n')}\n` : '';
     await writeFile(this.filePath, output, 'utf8');
@@ -156,17 +177,32 @@ export class CalendarService {
         .filter((line) => line.trim().length > 0)
         .map((line) => parseCsvLine(line));
       return rows.map((row) => {
+        const hasGroupId = row.length >= 10;
         const [
-          id,
+          groupIdValue,
+          idValue,
           typeValue,
           nameValue,
           amountValue,
-          startDate,
+          startDateValue,
           cadenceValue,
           monthsCountValue,
           foreverValue,
           exceptionsJson,
-        ] = row;
+        ] = hasGroupId
+          ? row
+          : [
+              'default',
+              row[0],
+              row[1],
+              row[2],
+              row[3],
+              row[4],
+              row[5],
+              row[6],
+              row[7],
+              row[8],
+            ];
         const amount = Number(amountValue ?? 0);
         const monthsCount = monthsCountValue
           ? Number(monthsCountValue)
@@ -175,11 +211,12 @@ export class CalendarService {
           ? (JSON.parse(exceptionsJson) as string[])
           : [];
         return {
-          id,
+          groupId: groupIdValue ?? 'default',
+          id: idValue ?? '',
           type: (typeValue as RecurringRule['type']) ?? 'bill',
           name: nameValue ?? '',
           amount: Number.isFinite(amount) ? amount : 0,
-          startDate,
+          startDate: startDateValue ?? '',
           cadence: (cadenceValue as RecurringRule['cadence']) ?? 'monthly',
           monthsCount: Number.isFinite(monthsCount) ? monthsCount : null,
           forever: foreverValue === 'true',
@@ -197,6 +234,7 @@ export class CalendarService {
   private async writeRecurringRules(rules: RecurringRule[]) {
     const lines = rules.map((rule) =>
       [
+        rule.groupId,
         rule.id,
         rule.type,
         rule.name,
@@ -212,6 +250,13 @@ export class CalendarService {
     );
     const output = lines.length > 0 ? `${lines.join('\n')}\n` : '';
     await writeFile(this.recurringFilePath, output, 'utf8');
+  }
+
+  private async readRecurringRulesForGroup(
+    groupId: string,
+  ): Promise<RecurringRule[]> {
+    const rules = await this.readRecurringRules();
+    return rules.filter((rule) => rule.groupId === groupId);
   }
 
   private mergeEvents(
@@ -354,6 +399,36 @@ export class CalendarService {
   private clampDay(year: number, monthIndex: number, day: number) {
     const lastDay = new Date(year, monthIndex + 1, 0).getDate();
     return Math.min(day, lastDay);
+  }
+
+  private getGroupEvents(
+    eventsByGroup: Map<string, Map<string, CalendarEvent>>,
+    groupId: string,
+  ) {
+    return eventsByGroup.get(groupId) ?? new Map<string, CalendarEvent>();
+  }
+
+  private parseEventRow(row: string[]) {
+    const [first, second, third, fourth, fifth, sixth] = row;
+    const looksLikeDate = /^\d{4}-\d{2}-\d{2}$/.test(first ?? '');
+    if (looksLikeDate) {
+      return {
+        groupId: 'default',
+        date: first ?? '',
+        billsJson: second ?? '',
+        paydaysJson: third ?? '',
+        purchasesJson: fourth ?? '',
+        savingsJson: fifth ?? '',
+      };
+    }
+    return {
+      groupId: first ?? 'default',
+      date: second ?? '',
+      billsJson: third ?? '',
+      paydaysJson: fourth ?? '',
+      purchasesJson: fifth ?? '',
+      savingsJson: sixth ?? '',
+    };
   }
 
   private normalizeAmountItems(

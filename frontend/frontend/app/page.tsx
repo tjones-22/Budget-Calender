@@ -1,14 +1,21 @@
 import AppDescriptionSection from "./components/AppDescriptionSection";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import CalendarView from "./components/CalendarView";
+import ProfileMenu from "./components/ProfileMenu";
+import { buildBackendUrl } from "@/app/lib/backend";
 
 type UserProfile = {
   name: string;
   username: string;
   initialFunds: number;
   initialSavings: number;
+  groupId: string | null;
+  role: "owner" | "viewer";
+  canEdit: boolean;
+  shareEvents: boolean;
+  shareBalances: boolean;
+  shareAnalytics: boolean;
 };
 
 type CalendarDay = {
@@ -27,17 +34,15 @@ type CalendarResponse = {
   matrix: CalendarDay[][];
 };
 
-async function getUserProfile(): Promise<UserProfile | null> {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get("session");
-  if (!sessionCookie?.value) {
+async function getUserProfile(sessionId?: string): Promise<UserProfile | null> {
+  if (!sessionId) {
     return null;
   }
 
   try {
-    const response = await fetch("https://budget-calender.onrender.com/api/login/me", {
+    const response = await fetch(buildBackendUrl("/api/login/me"), {
       headers: {
-        "x-session-id": sessionCookie.value,
+        "x-session-id": sessionId,
       },
       cache: "no-store",
     });
@@ -51,20 +56,33 @@ async function getUserProfile(): Promise<UserProfile | null> {
     return {
       ...data.user,
       initialSavings: Number(data.user.initialSavings ?? 0),
+      canEdit: data.user.canEdit ?? true,
+      shareEvents: data.user.shareEvents ?? true,
+      shareBalances: data.user.shareBalances ?? true,
+      shareAnalytics: data.user.shareAnalytics ?? true,
+      role: data.user.role ?? "owner",
     };
   } catch {
     return null;
   }
 }
 
-async function getCalendar(): Promise<CalendarResponse | null> {
+async function getCalendar(sessionId?: string): Promise<CalendarResponse | null> {
+  if (!sessionId) {
+    return null;
+  }
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth() + 1;
   try {
     const response = await fetch(
-      `https://budget-calender.onrender.com/api/calendar?year=${year}&month=${month}`,
-      { cache: "no-store" },
+      `${buildBackendUrl("/api/calendar")}?year=${year}&month=${month}`,
+      {
+        cache: "no-store",
+        headers: {
+          "x-session-id": sessionId,
+        },
+      },
     );
     if (!response.ok) {
       return null;
@@ -76,41 +94,20 @@ async function getCalendar(): Promise<CalendarResponse | null> {
 }
 
 export default async function Home() {
-  const user = await getUserProfile();
-  const calendar = await getCalendar();
-
-  async function logoutAction() {
-    "use server";
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
-    if (sessionCookie?.value) {
-      await fetch("https://budget-calender.onrender.com/api/login/logout", {
-        method: "POST",
-        headers: {
-          "x-session-id": sessionCookie.value,
-        },
-      });
-    }
-    cookieStore.delete("session");
-    redirect("/");
-  }
- 
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get("session")?.value;
+  const user = await getUserProfile(sessionId);
+  const calendar = user ? await getCalendar(sessionId) : null;
 
   if (user) {
     return (
       <div className="text-[18px] flex flex-col items-center justify-start gap-6 w-full h-auto p-6">
-        <div className="flex w-full max-w-4xl items-center justify-between">
+        <div className="flex w-full max-w-6xl items-center justify-between">
+          <ProfileMenu name={user.name} role={user.role} />
           <h1 className="bg-linear-to-r from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-3xl font-semibold tracking-tight text-transparent md:text-4xl">
             Welcome, {user.name}
           </h1>
-          <form action={logoutAction}>
-            <button
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-900"
-              type="submit"
-            >
-              Log out
-            </button>
-          </form>
+          <div className="w-10" />
         </div>
         {calendar ? (
           <CalendarView
@@ -119,6 +116,11 @@ export default async function Home() {
             username={user.username}
             initialFunds={user.initialFunds}
             initialSavings={user.initialSavings}
+            role={user.role}
+            canEdit={user.canEdit}
+            shareEvents={user.shareEvents}
+            shareBalances={user.shareBalances}
+            shareAnalytics={user.shareAnalytics}
             matrix={calendar.matrix}
           />
         ) : (

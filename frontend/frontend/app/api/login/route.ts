@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { buildBackendUrl } from "@/app/lib/backend";
 
-const backendUrl = "https://budget-calender.onrender.com/api/login";
+const backendUrl = buildBackendUrl("/api/login");
 
 export async function POST(request: Request) {
   let payload: { username?: string; password?: string } | null = null;

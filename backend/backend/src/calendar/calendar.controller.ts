@@ -6,9 +6,14 @@ import {
   HttpCode,
   Post,
   Query,
+  Req,
+  Res,
 } from '@nestjs/common';
+import * as express from 'express';
 import { CalendarService } from './calendar.service';
-import { formatDate } from './calendar';
+import { CalendarMonth, formatDate } from './calendar';
+import { LoginService } from '../login/login.service';
+import { GroupsService } from '../groups/groups.service';
 
 type DayUpdate = {
   date: string;
@@ -36,11 +41,17 @@ type RecurringDelete = {
 
 @Controller('api/calendar')
 export class CalendarController {
-  constructor(private readonly calendarService: CalendarService) {}
+  constructor(
+    private readonly calendarService: CalendarService,
+    private readonly loginService: LoginService,
+    private readonly groupsService: GroupsService,
+  ) {}
 
   @Get()
   @HttpCode(200)
   async getMonth(
+    @Req() req: express.Request,
+    @Res({ passthrough: true }) res: express.Response,
     @Query('year') yearValue?: string,
     @Query('month') monthValue?: string,
   ) {
@@ -55,13 +66,35 @@ export class CalendarController {
       throw new BadRequestException('Month must be between 1 and 12');
     }
 
-    const matrix = await this.calendarService.getMonth(year, month - 1);
+    const sessionId = this.getSessionId(req);
+    if (!sessionId) {
+      res.status(401);
+      return { year, month, matrix: [] };
+    }
+    const session = this.loginService.getSession(sessionId);
+    if (!session) {
+      res.status(401);
+      return { year, month, matrix: [] };
+    }
+    const member = await this.groupsService.getMember(session.username);
+    if (!member) {
+      res.status(404);
+      return { year, month, matrix: [] };
+    }
+
+    const matrix = member.shareEvents
+      ? await this.calendarService.getMonth(year, month - 1, member.groupId)
+      : new CalendarMonth(year, month - 1, new Map()).matrix;
     return { year, month, matrix };
   }
 
   @Post('day')
   @HttpCode(200)
-  async upsertDay(@Body() payload: DayUpdate) {
+  async upsertDay(
+    @Req() req: express.Request,
+    @Res({ passthrough: true }) res: express.Response,
+    @Body() payload: DayUpdate,
+  ) {
     const date = payload.date?.trim();
     if (!date) {
       throw new BadRequestException('Date is required');
@@ -77,8 +110,25 @@ export class CalendarController {
     const purchases = payload.purchases ?? [];
     const savings = payload.savings ?? [];
 
+    const sessionId = this.getSessionId(req);
+    if (!sessionId) {
+      res.status(401);
+      return { message: 'Unauthorized' };
+    }
+    const session = this.loginService.getSession(sessionId);
+    if (!session) {
+      res.status(401);
+      return { message: 'Unauthorized' };
+    }
+    const member = await this.groupsService.getMember(session.username);
+    if (!member || !member.shareEvents || !member.canEdit) {
+      res.status(403);
+      return { message: 'Not allowed' };
+    }
+
     await this.calendarService.upsertDay(
       normalized,
+      member.groupId,
       bills,
       paydays,
       purchases,
@@ -89,7 +139,11 @@ export class CalendarController {
 
   @Post('recurring')
   @HttpCode(200)
-  async createRecurring(@Body() payload: RecurringCreate) {
+  async createRecurring(
+    @Req() req: express.Request,
+    @Res({ passthrough: true }) res: express.Response,
+    @Body() payload: RecurringCreate,
+  ) {
     const date = payload.date?.trim();
     if (!date) {
       throw new BadRequestException('Date is required');
@@ -120,7 +174,23 @@ export class CalendarController {
       }
     }
 
-    const rule = await this.calendarService.createRecurringRule({
+    const sessionId = this.getSessionId(req);
+    if (!sessionId) {
+      res.status(401);
+      return { message: 'Unauthorized' };
+    }
+    const session = this.loginService.getSession(sessionId);
+    if (!session) {
+      res.status(401);
+      return { message: 'Unauthorized' };
+    }
+    const member = await this.groupsService.getMember(session.username);
+    if (!member || !member.shareEvents || !member.canEdit) {
+      res.status(403);
+      return { message: 'Not allowed' };
+    }
+
+    const rule = await this.calendarService.createRecurringRule(member.groupId, {
       type: payload.type,
       name,
       amount: Number(payload.amount),
@@ -134,7 +204,11 @@ export class CalendarController {
 
   @Post('recurring/delete')
   @HttpCode(200)
-  async deleteRecurring(@Body() payload: RecurringDelete) {
+  async deleteRecurring(
+    @Req() req: express.Request,
+    @Res({ passthrough: true }) res: express.Response,
+    @Body() payload: RecurringDelete,
+  ) {
     const recurringId = payload.recurringId?.trim();
     if (!recurringId) {
       throw new BadRequestException('Recurring id is required');
@@ -151,12 +225,56 @@ export class CalendarController {
       throw new BadRequestException('Invalid scope');
     }
 
+    const sessionId = this.getSessionId(req);
+    if (!sessionId) {
+      res.status(401);
+      return { message: 'Unauthorized' };
+    }
+    const session = this.loginService.getSession(sessionId);
+    if (!session) {
+      res.status(401);
+      return { message: 'Unauthorized' };
+    }
+    const member = await this.groupsService.getMember(session.username);
+    if (!member || !member.shareEvents || !member.canEdit) {
+      res.status(403);
+      return { message: 'Not allowed' };
+    }
+
     await this.calendarService.deleteRecurring(
+      member.groupId,
       recurringId,
       formatDate(parsedDate),
       payload.scope,
     );
     return { message: 'Recurring rule updated' };
+  }
+
+  private getSessionId(req: express.Request) {
+    const headerValue = req.headers['x-session-id'];
+    if (typeof headerValue === 'string' && headerValue.trim()) {
+      return headerValue.trim();
+    }
+    const authHeader = req.headers.authorization;
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice('Bearer '.length).trim();
+      if (token) {
+        return token;
+      }
+    }
+    return this.getCookie(req.headers.cookie, 'session');
+  }
+
+  private getCookie(cookieHeader: string | undefined, name: string) {
+    if (!cookieHeader) {
+      return null;
+    }
+    const cookies = cookieHeader.split(';').map((cookie) => cookie.trim());
+    const match = cookies.find((cookie) => cookie.startsWith(`${name}=`));
+    if (!match) {
+      return null;
+    }
+    return decodeURIComponent(match.slice(name.length + 1));
   }
 
   private parseLocalDate(value: string) {

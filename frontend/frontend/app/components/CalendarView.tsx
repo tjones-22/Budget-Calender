@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import MemberAccessPanel from "./MemberAccessPanel";
 
 type CalendarDay = {
   date: string;
@@ -18,6 +19,11 @@ type CalendarViewProps = {
   username: string;
   initialFunds: number;
   initialSavings: number;
+  role: "owner" | "viewer";
+  canEdit: boolean;
+  shareEvents: boolean;
+  shareBalances: boolean;
+  shareAnalytics: boolean;
   matrix: CalendarDay[][];
 };
 
@@ -45,6 +51,11 @@ const CalendarView = ({
   username,
   initialFunds,
   initialSavings,
+  role,
+  canEdit,
+  shareEvents,
+  shareBalances,
+  shareAnalytics,
   matrix,
 }: CalendarViewProps) => {
   const [activeMonth, setActiveMonth] = useState(Number(month));
@@ -223,7 +234,7 @@ const CalendarView = ({
   }, [activeMatrix, currentFunds, selectedDay]);
 
   const openEditor = (day: CalendarDay) => {
-    if (!day.isCurrentMonth) {
+    if (!day.isCurrentMonth || !shareEvents) {
       return;
     }
     setSelectedDay(day);
@@ -288,6 +299,10 @@ const CalendarView = ({
   };
 
   const addEvent = async () => {
+    if (!shareEvents || !canEdit) {
+      setError("You don't have permission to edit this calendar.");
+      return;
+    }
     const label = newLabel.trim();
     if (!label) {
       setError("Please enter a label.");
@@ -315,7 +330,7 @@ const CalendarView = ({
       setIsSaving(true);
       setError("");
       try {
-        const response = await fetch("https://budget-calender.onrender.com/api/calendar/recurring", {
+        const response = await fetch("/api/calendar/recurring", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -380,7 +395,7 @@ const CalendarView = ({
     setIsSaving(true);
     setError("");
     try {
-      const response = await fetch("https://budget-calender.onrender.com/api/calendar/day", {
+      const response = await fetch("/api/calendar/day", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -422,6 +437,10 @@ const CalendarView = ({
     type: "bill" | "payday" | "purchase" | "savings",
     index: number,
   ) => {
+    if (!shareEvents || !canEdit) {
+      setError("You don't have permission to edit this calendar.");
+      return;
+    }
     const day = activeMatrix.flat().find((item) => item.date === date);
     if (!day) {
       return;
@@ -449,11 +468,15 @@ const CalendarView = ({
     date: string,
     scope: "one" | "all",
   ) => {
+    if (!shareEvents || !canEdit) {
+      setError("You don't have permission to edit this calendar.");
+      return;
+    }
     setIsSaving(true);
     setError("");
     try {
       const response = await fetch(
-        "https://budget-calender.onrender.com/api/calendar/recurring/delete",
+        "/api/calendar/recurring/delete",
         {
           method: "POST",
           headers: {
@@ -481,7 +504,7 @@ const CalendarView = ({
   ) => {
     try {
       const response = await fetch(
-        `https://budget-calender.onrender.com/api/calendar?year=${yearValue}&month=${monthValue}`,
+        `/api/calendar?year=${yearValue}&month=${monthValue}`,
       );
       if (!response.ok) {
         setError(`Error: ${response.statusText}`);
@@ -534,6 +557,11 @@ const CalendarView = ({
     loadMonth(nextYear, nextMonth);
   };
 
+  const isOwner = role === "owner";
+  const layoutClass = isOwner
+    ? "md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)]"
+    : "md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]";
+
   return (
     <section className="w-full max-w-6xl rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
       <div className="flex items-center justify-between pb-4">
@@ -556,14 +584,18 @@ const CalendarView = ({
             Next
           </button>
         </div>
-        <span className="text-sm text-slate-500">{username}</span>
+        <span className="text-sm text-slate-500">
+          {username}
+          {!canEdit && <span className="ml-2 text-xs text-slate-400">Read-only</span>}
+        </span>
       </div>
       {error && (
         <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
           {error}
         </p>
       )}
-      <div className="mt-3 grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className={`mt-3 grid grid-cols-1 gap-6 ${layoutClass}`}>
+        {isOwner && <MemberAccessPanel />}
         <div>
           <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase text-slate-500">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label) => (
@@ -584,7 +616,7 @@ const CalendarView = ({
                   cell.isToday
                     ? "bg-slate-900 text-white border-slate-900"
                     : ""
-                }`}
+                } ${!shareEvents ? "cursor-not-allowed opacity-70" : ""}`}
               >
                 <div className="text-xs">{cell.date.split("-")[2]}</div>
                 <div className="mt-1 flex flex-wrap gap-1">
@@ -604,7 +636,7 @@ const CalendarView = ({
               </button>
             ))}
           </div>
-          {selectedDay && (
+          {selectedDay && canEdit && (
             <div className="mt-6 w-full rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <h3 className="text-base font-semibold text-slate-900">
                 Adding Events
@@ -772,286 +804,310 @@ const CalendarView = ({
           <h3 className="text-base font-semibold text-slate-900">
             {activeDay ? `Events for ${activeDay.date}` : "Events"}
           </h3>
-          <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
-            <div className="text-xs uppercase tracking-wide text-slate-500">
-              Bank Funds
+          {shareBalances ? (
+            <>
+              <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                <div className="text-xs uppercase tracking-wide text-slate-500">
+                  Bank Funds
+                </div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">
+                  ${currentFunds.toFixed(2)}
+                </div>
+              </div>
+              <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                <div className="text-xs uppercase tracking-wide text-slate-500">
+                  Bank Savings
+                </div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">
+                  ${savingsBalance.toFixed(2)}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500">
+              Balances are not shared by the calendar owner.
             </div>
-            <div className="mt-1 text-2xl font-semibold text-slate-900">
-              ${currentFunds.toFixed(2)}
-            </div>
-          </div>
-          <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
-            <div className="text-xs uppercase tracking-wide text-slate-500">
-              Bank Savings
-            </div>
-            <div className="mt-1 text-2xl font-semibold text-slate-900">
-              ${savingsBalance.toFixed(2)}
-            </div>
-          </div>
+          )}
           <div className="mt-4 space-y-3">
-            <div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-red-600">
-                <span className="h-2 w-2 rounded-full bg-red-500" />
-                Bills
-              </div>
-              {activeDay && activeDay.bills.length > 0 ? (
-                <ul className="mt-2 space-y-1 text-slate-700">
-                  {activeDay.bills.map((bill, index) => {
-                    const isRecurringBill = Boolean(bill.recurringId);
-                    return (
-                      <li
-                        key={`${bill.name}-${index}`}
-                        className="flex items-center justify-between gap-2"
-                      >
-                        <span>
-                          {bill.name} (${bill.amount})
-                        </span>
-                        <div className="flex items-center gap-2 text-xs">
-                          {isRecurringBill ? (
-                            <>
-                              <button
-                                type="button"
-                                className="text-slate-400 hover:text-slate-700"
-                                onClick={() =>
-                                  deleteRecurring(
-                                    bill.recurringId as string,
-                                    activeDay.date,
-                                    "one",
-                                  )
-                                }
-                              >
-                                Delete once
-                              </button>
-                              <button
-                                type="button"
-                                className="text-slate-400 hover:text-slate-700"
-                                onClick={() =>
-                                  deleteRecurring(
-                                    bill.recurringId as string,
-                                    activeDay.date,
-                                    "all",
-                                  )
-                                }
-                              >
-                                Delete all
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              className="text-slate-400 hover:text-slate-700"
-                              onClick={() => deleteEvent(activeDay.date, "bill", index)}
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="mt-2 text-xs text-slate-500">None</p>
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-green-600">
-                <span className="h-2 w-2 rounded-full bg-green-500" />
-                Paydays
-              </div>
-              {activeDay && activeDay.paydays.length > 0 ? (
-                <ul className="mt-2 space-y-1 text-slate-700">
-                  {activeDay.paydays.map((payday, index) => {
-                    const isRecurringPayday = Boolean(payday.recurringId);
-                    return (
-                      <li
-                        key={`${payday.name}-${index}`}
-                        className="flex items-center justify-between gap-2"
-                      >
-                        <span>
-                          {payday.name} (${payday.amount})
-                        </span>
-                        <div className="flex items-center gap-2 text-xs">
-                          {isRecurringPayday ? (
-                            <>
-                              <button
-                                type="button"
-                                className="text-slate-400 hover:text-slate-700"
-                                onClick={() =>
-                                  deleteRecurring(
-                                    payday.recurringId as string,
-                                    activeDay.date,
-                                    "one",
-                                  )
-                                }
-                              >
-                                Delete once
-                              </button>
-                              <button
-                                type="button"
-                                className="text-slate-400 hover:text-slate-700"
-                                onClick={() =>
-                                  deleteRecurring(
-                                    payday.recurringId as string,
-                                    activeDay.date,
-                                    "all",
-                                  )
-                                }
-                              >
-                                Delete all
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              className="text-slate-400 hover:text-slate-700"
-                              onClick={() => deleteEvent(activeDay.date, "payday", index)}
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="mt-2 text-xs text-slate-500">None</p>
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
-                <span className="h-2 w-2 rounded-full bg-blue-500" />
-                Purchases
-              </div>
-              {activeDay && activeDay.purchases.length > 0 ? (
-                <ul className="mt-2 space-y-1 text-slate-700">
-                  {activeDay.purchases.map((purchase, index) => {
-                    const isRecurringPurchase = Boolean(purchase.recurringId);
-                    return (
-                      <li
-                        key={`${purchase.name}-${index}`}
-                        className="flex items-center justify-between gap-2"
-                      >
-                        <span>
-                          {purchase.name} (${purchase.amount})
-                        </span>
-                        <div className="flex items-center gap-2 text-xs">
-                          {isRecurringPurchase ? (
-                            <>
-                              <button
-                                type="button"
-                                className="text-slate-400 hover:text-slate-700"
-                                onClick={() =>
-                                  deleteRecurring(
-                                    purchase.recurringId as string,
-                                    activeDay.date,
-                                    "one",
-                                  )
-                                }
-                              >
-                                Delete once
-                              </button>
-                              <button
-                                type="button"
-                                className="text-slate-400 hover:text-slate-700"
-                                onClick={() =>
-                                  deleteRecurring(
-                                    purchase.recurringId as string,
-                                    activeDay.date,
-                                    "all",
-                                  )
-                                }
-                              >
-                                Delete all
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              className="text-slate-400 hover:text-slate-700"
-                              onClick={() => deleteEvent(activeDay.date, "purchase", index)}
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="mt-2 text-xs text-slate-500">None</p>
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-amber-600">
-                <span className="h-2 w-2 rounded-full bg-amber-500" />
-                Savings
-              </div>
-              {activeDay && activeDay.savings.length > 0 ? (
-                <ul className="mt-2 space-y-1 text-slate-700">
-                  {activeDay.savings.map((entry, index) => {
-                    const isRecurringSavings = Boolean(entry.recurringId);
-                    return (
-                      <li
-                        key={`${entry.name}-${index}`}
-                        className="flex items-center justify-between gap-2"
-                      >
-                        <span>
-                          {entry.name} (${entry.amount})
-                        </span>
-                        <div className="flex items-center gap-2 text-xs">
-                          {isRecurringSavings ? (
-                            <>
-                              <button
-                                type="button"
-                                className="text-slate-400 hover:text-slate-700"
-                                onClick={() =>
-                                  deleteRecurring(
-                                    entry.recurringId as string,
-                                    activeDay.date,
-                                    "one",
-                                  )
-                                }
-                              >
-                                Delete once
-                              </button>
-                              <button
-                                type="button"
-                                className="text-slate-400 hover:text-slate-700"
-                                onClick={() =>
-                                  deleteRecurring(
-                                    entry.recurringId as string,
-                                    activeDay.date,
-                                    "all",
-                                  )
-                                }
-                              >
-                                Delete all
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              className="text-slate-400 hover:text-slate-700"
-                              onClick={() => deleteEvent(activeDay.date, "savings", index)}
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="mt-2 text-xs text-slate-500">None</p>
-              )}
-            </div>
+            {!shareEvents ? (
+              <p className="text-xs text-slate-500">
+                Calendar events are not shared by the owner.
+              </p>
+            ) : (
+              <>
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-red-600">
+                    <span className="h-2 w-2 rounded-full bg-red-500" />
+                    Bills
+                  </div>
+                  {activeDay && activeDay.bills.length > 0 ? (
+                    <ul className="mt-2 space-y-1 text-slate-700">
+                      {activeDay.bills.map((bill, index) => {
+                        const isRecurringBill = Boolean(bill.recurringId);
+                        return (
+                          <li
+                            key={`${bill.name}-${index}`}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <span>
+                              {bill.name} (${bill.amount})
+                            </span>
+                            {canEdit && (
+                              <div className="flex items-center gap-2 text-xs">
+                                {isRecurringBill ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="text-slate-400 hover:text-slate-700"
+                                      onClick={() =>
+                                        deleteRecurring(
+                                          bill.recurringId as string,
+                                          activeDay.date,
+                                          "one",
+                                        )
+                                      }
+                                    >
+                                      Delete once
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="text-slate-400 hover:text-slate-700"
+                                      onClick={() =>
+                                        deleteRecurring(
+                                          bill.recurringId as string,
+                                          activeDay.date,
+                                          "all",
+                                        )
+                                      }
+                                    >
+                                      Delete all
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="text-slate-400 hover:text-slate-700"
+                                    onClick={() => deleteEvent(activeDay.date, "bill", index)}
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-500">None</p>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-green-600">
+                    <span className="h-2 w-2 rounded-full bg-green-500" />
+                    Paydays
+                  </div>
+                  {activeDay && activeDay.paydays.length > 0 ? (
+                    <ul className="mt-2 space-y-1 text-slate-700">
+                      {activeDay.paydays.map((payday, index) => {
+                        const isRecurringPayday = Boolean(payday.recurringId);
+                        return (
+                          <li
+                            key={`${payday.name}-${index}`}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <span>
+                              {payday.name} (${payday.amount})
+                            </span>
+                            {canEdit && (
+                              <div className="flex items-center gap-2 text-xs">
+                                {isRecurringPayday ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="text-slate-400 hover:text-slate-700"
+                                      onClick={() =>
+                                        deleteRecurring(
+                                          payday.recurringId as string,
+                                          activeDay.date,
+                                          "one",
+                                        )
+                                      }
+                                    >
+                                      Delete once
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="text-slate-400 hover:text-slate-700"
+                                      onClick={() =>
+                                        deleteRecurring(
+                                          payday.recurringId as string,
+                                          activeDay.date,
+                                          "all",
+                                        )
+                                      }
+                                    >
+                                      Delete all
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="text-slate-400 hover:text-slate-700"
+                                    onClick={() => deleteEvent(activeDay.date, "payday", index)}
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-500">None</p>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
+                    <span className="h-2 w-2 rounded-full bg-blue-500" />
+                    Purchases
+                  </div>
+                  {activeDay && activeDay.purchases.length > 0 ? (
+                    <ul className="mt-2 space-y-1 text-slate-700">
+                      {activeDay.purchases.map((purchase, index) => {
+                        const isRecurringPurchase = Boolean(purchase.recurringId);
+                        return (
+                          <li
+                            key={`${purchase.name}-${index}`}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <span>
+                              {purchase.name} (${purchase.amount})
+                            </span>
+                            {canEdit && (
+                              <div className="flex items-center gap-2 text-xs">
+                                {isRecurringPurchase ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="text-slate-400 hover:text-slate-700"
+                                      onClick={() =>
+                                        deleteRecurring(
+                                          purchase.recurringId as string,
+                                          activeDay.date,
+                                          "one",
+                                        )
+                                      }
+                                    >
+                                      Delete once
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="text-slate-400 hover:text-slate-700"
+                                      onClick={() =>
+                                        deleteRecurring(
+                                          purchase.recurringId as string,
+                                          activeDay.date,
+                                          "all",
+                                        )
+                                      }
+                                    >
+                                      Delete all
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="text-slate-400 hover:text-slate-700"
+                                    onClick={() => deleteEvent(activeDay.date, "purchase", index)}
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-500">None</p>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-amber-600">
+                    <span className="h-2 w-2 rounded-full bg-amber-500" />
+                    Savings
+                  </div>
+                  {activeDay && activeDay.savings.length > 0 ? (
+                    <ul className="mt-2 space-y-1 text-slate-700">
+                      {activeDay.savings.map((entry, index) => {
+                        const isRecurringSavings = Boolean(entry.recurringId);
+                        return (
+                          <li
+                            key={`${entry.name}-${index}`}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <span>
+                              {entry.name} (${entry.amount})
+                            </span>
+                            {canEdit && (
+                              <div className="flex items-center gap-2 text-xs">
+                                {isRecurringSavings ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="text-slate-400 hover:text-slate-700"
+                                      onClick={() =>
+                                        deleteRecurring(
+                                          entry.recurringId as string,
+                                          activeDay.date,
+                                          "one",
+                                        )
+                                      }
+                                    >
+                                      Delete once
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="text-slate-400 hover:text-slate-700"
+                                      onClick={() =>
+                                        deleteRecurring(
+                                          entry.recurringId as string,
+                                          activeDay.date,
+                                          "all",
+                                        )
+                                      }
+                                    >
+                                      Delete all
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="text-slate-400 hover:text-slate-700"
+                                    onClick={() => deleteEvent(activeDay.date, "savings", index)}
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-500">None</p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
-          {activeMatrix.flat().some((day) => day.paydays.length > 0) && (
+          {shareAnalytics && activeMatrix.flat().some((day) => day.paydays.length > 0) && (
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
               <h3 className="text-base font-semibold text-slate-900">
                 Between Paydays
@@ -1107,61 +1163,63 @@ const CalendarView = ({
             </div>
           )}
 
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-            <h3 className="text-base font-semibold text-slate-900">
-              Month Analytics
-            </h3>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <div className="text-xs uppercase tracking-wide text-slate-500">
-                  Total Bills
+          {shareAnalytics && (
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+              <h3 className="text-base font-semibold text-slate-900">
+                Month Analytics
+              </h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">
+                    Total Bills
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                    ${analytics.totalBills.toFixed(2)}
+                  </div>
                 </div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">
-                  ${analytics.totalBills.toFixed(2)}
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">
+                    Total Paydays
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                    ${analytics.totalPaydays.toFixed(2)}
+                  </div>
                 </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <div className="text-xs uppercase tracking-wide text-slate-500">
-                  Total Paydays
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">
+                    Purchases Planned
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                    ${analytics.totalPurchases.toFixed(2)}
+                  </div>
                 </div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">
-                  ${analytics.totalPaydays.toFixed(2)}
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">
+                    Savings Moves
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                    ${analytics.totalSavings.toFixed(2)}
+                  </div>
                 </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <div className="text-xs uppercase tracking-wide text-slate-500">
-                  Purchases Planned
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">
+                    End of Month Funds
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                    ${analytics.endOfMonthFunds.toFixed(2)}
+                  </div>
                 </div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">
-                  ${analytics.totalPurchases.toFixed(2)}
-                </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <div className="text-xs uppercase tracking-wide text-slate-500">
-                  Savings Moves
-                </div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">
-                  ${analytics.totalSavings.toFixed(2)}
-                </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <div className="text-xs uppercase tracking-wide text-slate-500">
-                  End of Month Funds
-                </div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">
-                  ${analytics.endOfMonthFunds.toFixed(2)}
-                </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-3 sm:col-span-2">
-                <div className="text-xs uppercase tracking-wide text-slate-500">
-                  Leftover After Bills
-                </div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">
-                  ${analytics.leftoverBeforePurchases.toFixed(2)}
+                <div className="rounded-xl border border-slate-200 bg-white p-3 sm:col-span-2">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">
+                    Leftover After Bills
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                    ${analytics.leftoverBeforePurchases.toFixed(2)}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </aside>
       </div>
 

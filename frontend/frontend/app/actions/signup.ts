@@ -2,6 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
+import { buildBackendUrl } from "@/app/lib/backend";
 
 export type SignupState = {
   error: string;
@@ -51,8 +52,10 @@ export async function signupAction(
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
+  const backendUrl = buildBackendUrl("/api/signup");
+
   try {
-    const response = await fetch("https://budget-calender.onrender.com/api/signup", {
+    const response = await fetch(backendUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
