@@ -672,7 +672,7 @@ const CalendarView = ({
                       <option value="savings">Move to Savings</option>
                     </select>
                     <input
-                      className="min-w-[160px] flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                      className="min-w-40 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
                       value={newLabel}
                       onChange={(event) => setNewLabel(event.target.value)}
                       placeholder="Label"
