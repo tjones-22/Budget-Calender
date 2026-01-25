@@ -86,62 +86,11 @@ const CalendarView = ({
     return flatDays.find((day) => day.isToday) ?? flatDays.find((day) => day.isCurrentMonth) ?? null;
   }, [flatDays, selectedDay]);
 
-  const currentFunds = useMemo(() => {
-    const reference = selectedDay ? new Date(`${selectedDay.date}T00:00:00`) : new Date();
-    const days = activeMatrix.flat();
-    const dayTime = (date: string) => new Date(`${date}T00:00:00`).getTime();
-    const monthStart = new Date(activeYear, activeMonth - 1, 1).getTime();
-    const firstPayday = days
-      .filter((day) => day.paydays.length > 0)
-      .map((day) => ({
-        time: dayTime(day.date),
-        amount: day.paydays.reduce((sum, payday) => sum + payday.amount, 0),
-      }))
-      .filter((payday) => payday.time >= monthStart)
-      .sort((a, b) => a.time - b.time)[0];
-
-    if (!firstPayday) {
-      return initialFunds;
-    }
-    if (reference.getTime() < firstPayday.time) {
-      return 0;
-    }
-
-    const totals = days.reduce(
-      (acc, day) => {
-        const currentTime = dayTime(day.date);
-        if (currentTime < firstPayday.time || currentTime > reference.getTime()) {
-          return acc;
-        }
-        return {
-          paydays: acc.paydays + day.paydays.reduce((sum, payday) => sum + payday.amount, 0),
-          bills: acc.bills + day.bills.reduce((sum, bill) => sum + bill.amount, 0),
-          purchases:
-            acc.purchases +
-            day.purchases.reduce((sum, purchase) => sum + purchase.amount, 0),
-          savings:
-            acc.savings +
-            day.savings.reduce((sum, entry) => sum + entry.amount, 0),
-        };
-      },
-      { paydays: 0, bills: 0, purchases: 0, savings: 0 },
-    );
-
-    return totals.paydays - totals.bills - totals.purchases - totals.savings;
-  }, [activeMatrix, activeMonth, activeYear, initialFunds, selectedDay]);
-
-  const savingsBalance = useMemo(() => {
-    const reference = selectedDay ? new Date(`${selectedDay.date}T00:00:00`) : new Date();
-    const days = activeMatrix.flat();
-    const totalSavings = days.reduce((sum, day) => {
-      const currentTime = new Date(`${day.date}T00:00:00`).getTime();
-      if (currentTime > reference.getTime()) {
-        return sum;
-      }
-      return sum + day.savings.reduce((inner, entry) => inner + entry.amount, 0);
-    }, 0);
-    return initialSavings + totalSavings;
-  }, [activeMatrix, initialSavings, selectedDay]);
+  const [balance, setBalance] = useState(() => ({
+    funds: initialFunds,
+    savings: initialSavings,
+  }));
+  const [balanceError, setBalanceError] = useState("");
 
   const analytics = useMemo(() => {
     const currentMonthDays = activeMatrix.flat().filter((day) => day.isCurrentMonth);
@@ -217,7 +166,7 @@ const CalendarView = ({
     );
 
     const projectedBalance =
-      currentFunds -
+      balance.funds -
       totalsUntilNext.bills -
       totalsUntilNext.purchases -
       totalsUntilNext.savings +
@@ -231,7 +180,7 @@ const CalendarView = ({
       savingsUntilNext: totalsUntilNext.savings,
       projectedBalance,
     };
-  }, [activeMatrix, currentFunds, selectedDay]);
+  }, [activeMatrix, balance.funds, selectedDay]);
 
   const openEditor = (day: CalendarDay) => {
     if (!day.isCurrentMonth || !shareEvents) {
@@ -563,6 +512,33 @@ const CalendarView = ({
     : "md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]";
 
   useEffect(() => {
+    if (!shareBalances) {
+      return;
+    }
+    const date = selectedDay?.date ?? activeDay?.date;
+    if (!date) {
+      return;
+    }
+    const loadBalance = async () => {
+      try {
+        const response = await fetch(`/api/calendar/balance?date=${date}`);
+        if (!response.ok) {
+          throw new Error("Unable to fetch balance.");
+        }
+        const data = (await response.json()) as { funds?: number; savings?: number };
+        setBalance({
+          funds: Number(data.funds ?? 0),
+          savings: Number(data.savings ?? 0),
+        });
+        setBalanceError("");
+      } catch (err) {
+        setBalanceError(err instanceof Error ? err.message : "Unable to load balance.");
+      }
+    };
+    loadBalance();
+  }, [activeDay?.date, selectedDay?.date, shareBalances]);
+
+  useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const scheduleNextRefresh = () => {
@@ -839,19 +815,22 @@ const CalendarView = ({
                 <div className="text-xs uppercase tracking-wide text-slate-500">
                   Bank Funds
                 </div>
-                <div className="mt-1 text-2xl font-semibold text-slate-900">
-                  ${currentFunds.toFixed(2)}
-                </div>
+              <div className="mt-1 text-2xl font-semibold text-slate-900">
+                  ${balance.funds.toFixed(2)}
               </div>
-              <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
-                <div className="text-xs uppercase tracking-wide text-slate-500">
-                  Bank Savings
-                </div>
-                <div className="mt-1 text-2xl font-semibold text-slate-900">
-                  ${savingsBalance.toFixed(2)}
-                </div>
+            </div>
+            <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+              <div className="text-xs uppercase tracking-wide text-slate-500">
+                Bank Savings
               </div>
-            </>
+              <div className="mt-1 text-2xl font-semibold text-slate-900">
+                  ${balance.savings.toFixed(2)}
+              </div>
+            </div>
+            {balanceError && (
+              <p className="mt-2 text-xs text-red-500">{balanceError}</p>
+            )}
+          </>
           ) : (
             <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500">
               Balances are not shared by the calendar owner.

@@ -88,6 +88,49 @@ export class CalendarController {
     return { year, month, matrix };
   }
 
+  @Get('balance')
+  @HttpCode(200)
+  async getBalance(
+    @Req() req: express.Request,
+    @Res({ passthrough: true }) res: express.Response,
+    @Query('date') dateValue?: string,
+  ) {
+    const date = dateValue?.trim();
+    if (!date) {
+      throw new BadRequestException('Date is required');
+    }
+    const parsedDate = this.parseLocalDate(date);
+    if (!parsedDate) {
+      throw new BadRequestException('Invalid date format');
+    }
+
+    const sessionId = this.getSessionId(req);
+    if (!sessionId) {
+      res.status(401);
+      return { funds: 0, savings: 0 };
+    }
+    const session = this.loginService.getSession(sessionId);
+    if (!session) {
+      res.status(401);
+      return { funds: 0, savings: 0 };
+    }
+    const member = await this.groupsService.getMember(session.username);
+    if (!member) {
+      res.status(404);
+      return { funds: 0, savings: 0 };
+    }
+    const group = await this.groupsService.getGroup(member.groupId);
+    const baseFunds = group?.funds ?? 0;
+    const baseSavings = group?.savings ?? 0;
+    const balance = await this.calendarService.getBalanceForDate(
+      member.groupId,
+      date,
+      baseFunds,
+      baseSavings,
+    );
+    return balance;
+  }
+
   @Post('day')
   @HttpCode(200)
   async upsertDay(

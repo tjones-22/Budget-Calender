@@ -252,6 +252,48 @@ export class CalendarService {
     await writeFile(this.recurringFilePath, output, 'utf8');
   }
 
+  async getBalanceForDate(
+    groupId: string,
+    date: string,
+    baseFunds: number,
+    baseSavings: number,
+  ) {
+    const endDate = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(endDate.getTime())) {
+      return { funds: baseFunds, savings: baseSavings };
+    }
+
+    const eventsByGroup = await this.readEventsByGroup();
+    const events = this.getGroupEvents(eventsByGroup, groupId);
+    const recurringRules = await this.readRecurringRulesForGroup(groupId);
+    const recurringEvents = this.expandRecurringUpToDate(recurringRules, endDate);
+    const mergedEvents = this.mergeEvents(events, recurringEvents);
+
+    const endTime = endDate.getTime();
+    let funds = baseFunds;
+    let savings = baseSavings;
+    for (const [eventDate, event] of mergedEvents) {
+      const currentTime = new Date(`${eventDate}T00:00:00`).getTime();
+      if (Number.isNaN(currentTime) || currentTime > endTime) {
+        continue;
+      }
+      const paydaysTotal = event.paydays.reduce((sum, item) => sum + item.amount, 0);
+      const billsTotal = event.bills.reduce((sum, item) => sum + item.amount, 0);
+      const purchasesTotal = event.purchases.reduce(
+        (sum, item) => sum + item.amount,
+        0,
+      );
+      const savingsTotal = event.savings.reduce(
+        (sum, item) => sum + item.amount,
+        0,
+      );
+      funds += paydaysTotal - billsTotal - purchasesTotal - savingsTotal;
+      savings += savingsTotal;
+    }
+
+    return { funds, savings };
+  }
+
   private async readRecurringRulesForGroup(
     groupId: string,
   ): Promise<RecurringRule[]> {
@@ -286,6 +328,109 @@ export class CalendarService {
       merged.set(date, current);
     }
     return merged;
+  }
+
+  private expandRecurringUpToDate(
+    rules: RecurringRule[],
+    endDate: Date,
+  ) {
+    const result = new Map<string, CalendarEvent>();
+    const endTime = endDate.getTime();
+    for (const rule of rules) {
+      const startDate = new Date(`${rule.startDate}T00:00:00`);
+      if (Number.isNaN(startDate.getTime())) {
+        continue;
+      }
+      if (startDate.getTime() > endTime) {
+        continue;
+      }
+
+      let limitEnd = endTime;
+      if (!rule.forever && rule.monthsCount && rule.monthsCount > 0) {
+        const startMonth = new Date(
+          startDate.getFullYear(),
+          startDate.getMonth(),
+          1,
+        );
+        const endMonth = new Date(
+          startMonth.getFullYear(),
+          startMonth.getMonth() + rule.monthsCount,
+          0,
+        );
+        limitEnd = Math.min(limitEnd, endMonth.getTime());
+      }
+
+      const exceptions = new Set(rule.exceptions);
+      const item = { name: rule.name, amount: rule.amount, recurringId: rule.id };
+
+      if (rule.cadence === 'monthly') {
+        const startMonthIndex = startDate.getFullYear() * 12 + startDate.getMonth();
+        const endMonthIndex =
+          new Date(limitEnd).getFullYear() * 12 + new Date(limitEnd).getMonth();
+        for (let index = startMonthIndex; index <= endMonthIndex; index += 1) {
+          const year = Math.floor(index / 12);
+          const monthIndex = index % 12;
+          const day = this.clampDay(year, monthIndex, startDate.getDate());
+          const candidate = new Date(year, monthIndex, day);
+          const candidateTime = candidate.getTime();
+          if (candidateTime < startDate.getTime() || candidateTime > limitEnd) {
+            continue;
+          }
+          const date = formatDate(candidate);
+          if (exceptions.has(date)) {
+            continue;
+          }
+          const entry = result.get(date) ?? {
+            bills: [],
+            paydays: [],
+            purchases: [],
+            savings: [],
+          };
+          if (rule.type === 'bill') {
+            entry.bills.push(item);
+          } else if (rule.type === 'payday') {
+            entry.paydays.push(item);
+          } else if (rule.type === 'purchase') {
+            entry.purchases.push(item);
+          } else {
+            entry.savings.push(item);
+          }
+          result.set(date, entry);
+        }
+        continue;
+      }
+
+      const intervalDays = rule.cadence === 'biweekly' ? 14 : 7;
+      const dayMs = 24 * 60 * 60 * 1000;
+      for (
+        let time = startDate.getTime();
+        time <= limitEnd;
+        time += intervalDays * dayMs
+      ) {
+        const occurrence = new Date(time);
+        const date = formatDate(occurrence);
+        if (exceptions.has(date)) {
+          continue;
+        }
+        const entry = result.get(date) ?? {
+          bills: [],
+          paydays: [],
+          purchases: [],
+          savings: [],
+        };
+        if (rule.type === 'bill') {
+          entry.bills.push(item);
+        } else if (rule.type === 'payday') {
+          entry.paydays.push(item);
+        } else if (rule.type === 'purchase') {
+          entry.purchases.push(item);
+        } else {
+          entry.savings.push(item);
+        }
+        result.set(date, entry);
+      }
+    }
+    return result;
   }
 
   private expandRecurringForMonth(
