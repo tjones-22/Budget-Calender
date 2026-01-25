@@ -84,7 +84,7 @@ const Login = () => {
                 Username
               </label>
               <input
-                className="ml-1 w-[20vw] rounded-tl-2xl border-2 border-black p-1.5 text-black focus-visible:outline-slate-900"
+                className="ml-1 w-full max-w-md rounded-tl-2xl border-2 border-black p-1.5 text-black focus-visible:outline-slate-900 md:w-[20vw]"
                 type="text"
                 name="username"
                 id="username"
@@ -101,7 +101,7 @@ const Login = () => {
                 Password
               </label>
               <input
-                className="ml-1 w-[20vw] rounded-tl-2xl border-2 border-black p-1.5 text-black focus-visible:outline-slate-900"
+                className="ml-1 w-full max-w-md rounded-tl-2xl border-2 border-black p-1.5 text-black focus-visible:outline-slate-900 md:w-[20vw]"
                 type="password"
                 name="password"
                 id="password"

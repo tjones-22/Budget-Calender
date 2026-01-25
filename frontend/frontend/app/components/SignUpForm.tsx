@@ -51,7 +51,7 @@ const SignUp = () => {
                 Name
               </label>
               <input
-                className="border-2 border-black rounded-tl-2xl text-black ml-1 p-1.5 focus-visible:outline-slate-900 w-[20vw]"
+                className="ml-1 w-full max-w-md rounded-tl-2xl border-2 border-black p-1.5 text-black focus-visible:outline-slate-900 md:w-[20vw]"
                 type="text"
                 name="name"
                 id="name"
@@ -71,7 +71,7 @@ const SignUp = () => {
                 Username
               </label>
               <input
-                className="border-2 border-black rounded-tl-2xl text-black ml-1 p-1.5 focus-visible:outline-slate-900 w-[20vw]"
+                className="ml-1 w-full max-w-md rounded-tl-2xl border-2 border-black p-1.5 text-black focus-visible:outline-slate-900 md:w-[20vw]"
                 type="text"
                 name="username"
                 id="username"
@@ -91,7 +91,7 @@ const SignUp = () => {
                 Password
               </label>
               <input
-                className="border-2 border-black rounded-tl-2xl text-black ml-1 p-1.5 focus-visible:outline-slate-900 w-[20vw]"
+                className="ml-1 w-full max-w-md rounded-tl-2xl border-2 border-black p-1.5 text-black focus-visible:outline-slate-900 md:w-[20vw]"
                 type="password"
                 name="password"
                 id="password"
@@ -107,7 +107,7 @@ const SignUp = () => {
                 Phone
               </label>
               <input
-                className="border-2 border-black rounded-tl-2xl text-black ml-1 p-1.5 focus-visible:outline-slate-900 w-[20vw]"
+                className="ml-1 w-full max-w-md rounded-tl-2xl border-2 border-black p-1.5 text-black focus-visible:outline-slate-900 md:w-[20vw]"
                 type="phone"
                 name="phone"
                 id="phone"
@@ -138,7 +138,7 @@ const SignUp = () => {
                     Initial Funds
                   </label>
                   <input
-                    className="border-2 border-black rounded-tl-2xl text-black ml-1 p-1.5 focus-visible:outline-slate-900 w-[20vw]"
+                    className="ml-1 w-full max-w-md rounded-tl-2xl border-2 border-black p-1.5 text-black focus-visible:outline-slate-900 md:w-[20vw]"
                     type="text"
                     name="initialFunds"
                     id="initialFunds"
@@ -155,7 +155,7 @@ const SignUp = () => {
                     Initial Savings
                   </label>
                   <input
-                    className="border-2 border-black rounded-tl-2xl text-black ml-1 p-1.5 focus-visible:outline-slate-900 w-[20vw]"
+                    className="ml-1 w-full max-w-md rounded-tl-2xl border-2 border-black p-1.5 text-black focus-visible:outline-slate-900 md:w-[20vw]"
                     type="text"
                     name="initialSavings"
                     id="initialSavings"
