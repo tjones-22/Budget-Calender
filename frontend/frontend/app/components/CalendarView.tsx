@@ -45,6 +45,12 @@ const monthLabel = (year: number, month: number) =>
     ? new Date(year, month - 1, 1).toLocaleString("default", { month: "long" })
     : "Invalid Date";
 
+const normalizeAmount = (amount: number) => (Number.isFinite(amount) ? amount : 0);
+const toCents = (amount: number) => Math.round(normalizeAmount(amount) * 100);
+const sumAmounts = (items: { amount: number }[]) =>
+  items.reduce((sum, item) => sum + toCents(item.amount), 0);
+const fromCents = (cents: number) => cents / 100;
+
 const CalendarView = ({
   month,
   year,
@@ -94,34 +100,33 @@ const CalendarView = ({
 
   const analytics = useMemo(() => {
     const currentMonthDays = activeMatrix.flat().filter((day) => day.isCurrentMonth);
-    const totalBills = currentMonthDays.reduce(
-      (sum, day) => sum + day.bills.reduce((inner, bill) => inner + bill.amount, 0),
+    const totalBillsCents = currentMonthDays.reduce(
+      (sum, day) => sum + sumAmounts(day.bills),
       0,
     );
-    const totalPaydays = currentMonthDays.reduce(
-      (sum, day) =>
-        sum + day.paydays.reduce((inner, payday) => inner + payday.amount, 0),
+    const totalPaydaysCents = currentMonthDays.reduce(
+      (sum, day) => sum + sumAmounts(day.paydays),
       0,
     );
-    const totalPurchases = currentMonthDays.reduce(
-      (sum, day) =>
-        sum + day.purchases.reduce((inner, purchase) => inner + purchase.amount, 0),
+    const totalPurchasesCents = currentMonthDays.reduce(
+      (sum, day) => sum + sumAmounts(day.purchases),
       0,
     );
-    const totalSavings = currentMonthDays.reduce(
-      (sum, day) =>
-        sum + day.savings.reduce((inner, entry) => inner + entry.amount, 0),
+    const totalSavingsCents = currentMonthDays.reduce(
+      (sum, day) => sum + sumAmounts(day.savings),
       0,
     );
-    const leftoverBeforePurchases = initialFunds + totalPaydays - totalBills;
-    const endOfMonthFunds = leftoverBeforePurchases - totalPurchases - totalSavings;
+    const leftoverBeforePurchasesCents =
+      toCents(initialFunds) + totalPaydaysCents - totalBillsCents;
+    const endOfMonthFundsCents =
+      leftoverBeforePurchasesCents - totalPurchasesCents - totalSavingsCents;
     return {
-      totalBills,
-      totalPaydays,
-      totalPurchases,
-      totalSavings,
-      leftoverBeforePurchases,
-      endOfMonthFunds,
+      totalBills: fromCents(totalBillsCents),
+      totalPaydays: fromCents(totalPaydaysCents),
+      totalPurchases: fromCents(totalPurchasesCents),
+      totalSavings: fromCents(totalSavingsCents),
+      leftoverBeforePurchases: fromCents(leftoverBeforePurchasesCents),
+      endOfMonthFunds: fromCents(endOfMonthFundsCents),
     };
   }, [activeMatrix, initialFunds]);
 
@@ -133,7 +138,7 @@ const CalendarView = ({
       .map((day) => ({
         date: day.date,
         time: new Date(`${day.date}T00:00:00`).getTime(),
-        amount: day.paydays.reduce((sum, payday) => sum + payday.amount, 0),
+        amountCents: sumAmounts(day.paydays),
       }))
       .sort((a, b) => a.time - b.time);
 
@@ -154,31 +159,28 @@ const CalendarView = ({
           return acc;
         }
         return {
-          bills: acc.bills + day.bills.reduce((sum, bill) => sum + bill.amount, 0),
-          purchases:
-            acc.purchases +
-            day.purchases.reduce((sum, purchase) => sum + purchase.amount, 0),
-          savings:
-            acc.savings + day.savings.reduce((sum, entry) => sum + entry.amount, 0),
+          billsCents: acc.billsCents + sumAmounts(day.bills),
+          purchasesCents: acc.purchasesCents + sumAmounts(day.purchases),
+          savingsCents: acc.savingsCents + sumAmounts(day.savings),
         };
       },
-      { bills: 0, purchases: 0, savings: 0 },
+      { billsCents: 0, purchasesCents: 0, savingsCents: 0 },
     );
 
-    const projectedBalance =
-      balance.funds -
-      totalsUntilNext.bills -
-      totalsUntilNext.purchases -
-      totalsUntilNext.savings +
-      nextPayday.amount;
+    const projectedBalanceCents =
+      toCents(balance.funds) -
+      totalsUntilNext.billsCents -
+      totalsUntilNext.purchasesCents -
+      totalsUntilNext.savingsCents +
+      nextPayday.amountCents;
 
     return {
       nextPaydayDate: nextPayday.date,
-      nextPaydayAmount: nextPayday.amount,
-      billsUntilNext: totalsUntilNext.bills,
-      purchasesUntilNext: totalsUntilNext.purchases,
-      savingsUntilNext: totalsUntilNext.savings,
-      projectedBalance,
+      nextPaydayAmount: fromCents(nextPayday.amountCents),
+      billsUntilNext: fromCents(totalsUntilNext.billsCents),
+      purchasesUntilNext: fromCents(totalsUntilNext.purchasesCents),
+      savingsUntilNext: fromCents(totalsUntilNext.savingsCents),
+      projectedBalance: fromCents(projectedBalanceCents),
     };
   }, [activeMatrix, balance.funds, selectedDay]);
 
