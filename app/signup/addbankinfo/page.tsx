@@ -1,7 +1,16 @@
-
+import { redirect } from "next/navigation";
 import { updateBankStartingBalanceFormAction } from "../../actions/user-actions";
+import { requireUser } from "../../lib/auth/session";
+import { getUserOnboardingStatus } from "../../lib/db/user-db";
 
 export default async function AddBankInfoPage() {
+  const user = await requireUser();
+  const userSetup = await getUserOnboardingStatus(user.id);
+
+  if (!userSetup || userSetup.onboardingComplete) {
+    redirect("/dashboard");
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-900 px-4 text-gray-950">
       <section className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">

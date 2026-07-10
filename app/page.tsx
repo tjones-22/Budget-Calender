@@ -1,4 +1,5 @@
 import Calender from "./components/Calender";
+import { mockBillsByDay } from "./lib/mockBills";
 import Link from "next/link";
 export default function Home() {
   return (
@@ -8,22 +9,22 @@ export default function Home() {
           Welcome to Budget Calender
         </h1>
         <div className="flex flex-row w-1/3  justify-evenly items-center text-lg ">
-          <button>
+          
             <Link
               className="bg-gray-900 p-3 rounded-lg hover:bg-amber-700 hover-animation-timing"
               href={"/login"}
             >
               Login
             </Link>
-          </button>
-          <button>
+          
+          
             <Link
               className="bg-gray-900 p-3 rounded-lg hover:bg-amber-700 hover-animation-timing"
               href={"/signup"}
             >
               Sign Up
             </Link>
-          </button>
+          
         </div>
       </div>
       <main className="homepage-main mt-4 dark:bg-gray-900 min-[1000px]:flex-row min-[1000px]:h- flex-col sm:min-h-screen sm:justify-around sm: items-center">
@@ -39,10 +40,15 @@ export default function Home() {
             easier to plan future purchases. It also allows you to see your
             current ballance in an day, week, and end of the month.
           </p>
+          <p className="min-[1000px]:text-2xl">
+            For this app, we have you enter in your savings and a hypothetical checking account where your bills pull money from. 
+            If this were a real app we would use a secured API for getting your bank account information and notifying you when 
+            bills have been paid.
+          </p>
         </div>
 
         <div>
-          <Calender />
+          <Calender billsByDay={mockBillsByDay} />
         </div>
       </main>
     </>

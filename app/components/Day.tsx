@@ -1,10 +1,6 @@
+import Link from "next/link";
 import { Day } from "../../types/types";
-
-const billTypeStyles = {
-  payday: "bg-green-500",
-  bill: "bg-red-500",
-  purchase: "bg-orange-500",
-};
+import { billTypeDotStyles } from "../lib/bills";
 
 export default function DayCard({
   day,
@@ -13,6 +9,7 @@ export default function DayCard({
   weekdayNameClassName = "",
   weekdayName,
   headerClassName = "",
+  href,
 }: {
   day: Day;
   className?: string;
@@ -20,16 +17,16 @@ export default function DayCard({
   weekdayNameClassName?: string;
   weekdayName?: string;
   headerClassName?: string;
+  href?: string;
 }) {
   const weekdayClasses =
     weekdayNameClassName || "text-sm uppercase";
   const dayNumberClasses =
     dayNumberClassName || "text-base sm:text-sm";
-
-  return (
-    <div
-      className={`flex min-h-fit max-w-fit flex-col rounded-md border border-gray-200 bg-white p-4 text-gray-950 dark:border-gray-700 dark:bg-black dark:text-white ${className}`}
-    >
+  const sizeClasses = className || "max-w-fit";
+  const cardClasses = `flex min-h-fit flex-col rounded-md border border-gray-200 bg-white p-4 text-gray-950 dark:border-gray-700 dark:bg-black dark:text-white ${href ? "cursor-pointer transition hover:border-blue-500 hover:ring-2 hover:ring-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500" : ""} ${sizeClasses}`;
+  const cardContent = (
+    <>
       <div
         className={`flex flex-col items-center justify-center ${headerClassName}`}
       >
@@ -45,15 +42,30 @@ export default function DayCard({
         </p>
       </div>
 
-      <div className="mt-auto flex w-full flex-row items-center gap-1">
+      <div className="mt-auto flex w-full flex-row items-center justify-center gap-1">
         {day.bills.map((bill, index) => (
           <span
             key={`${bill.name}-${bill.type}-${index}`}
             title={bill.name}
-            className={`h-2.5 w-2.5 rounded-full ${billTypeStyles[bill.type]}`}
+            className={`h-2.5 w-2.5 rounded-full ${billTypeDotStyles[bill.type]}`}
           />
         ))}
       </div>
-    </div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={cardClasses}
+      >
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={cardClasses}>{cardContent}</div>
   );
 }

@@ -3,11 +3,17 @@
 import { signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
-import type { AuthFormState, BankFormState } from "../../types/types";
+import type {
+  AuthFormState,
+  UpdateUserProfileFormState,
+} from "../../types/types";
 import { requireUser } from "../lib/auth/session";
 import {
+  deleteUser,
+  getUserOnboardingStatus,
   signUpWithUserCredentials,
   updateBankStartingBalanceByUserId,
+  UpdateUserProfile,
 } from "../lib/db/user-db";
 
 function getStringValue(formData: FormData, key: string) {
@@ -16,17 +22,29 @@ function getStringValue(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export async function signInWithGoogleAction() {
+function getCredentials(formData: FormData) {
+  return {
+    username: getStringValue(formData, "username"),
+    password: getStringValue(formData, "password"),
+  };
+}
+
+async function signInWithGoogleRedirect(redirectTo: string, delayMs = 0) {
+  if (delayMs > 0) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
   await signIn("google", {
-    redirectTo: "/dashboard",
+    redirectTo,
   });
 }
 
+export async function signInWithGoogleAction() {
+  await signInWithGoogleRedirect("/dashboard");
+}
+
 export async function signUpWithGoogleAction() {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-  await signIn("google", {
-    redirectTo: "/signup/addbankinfo",
-  });
+  await signInWithGoogleRedirect("/signup/addbankinfo", 3000);
 }
 
 export async function signOutAction() {
@@ -36,12 +54,11 @@ export async function signOutAction() {
 }
 
 export async function signUpWithCredentialsAction(formData: FormData) {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+  await new Promise((resolve) => setTimeout(resolve, 3000));
 
   const email = getStringValue(formData, "email");
   const name = getStringValue(formData, "name");
-  const username = getStringValue(formData, "username");
-  const password = getStringValue(formData, "password");
+  const { username, password } = getCredentials(formData);
 
   if (!username || !password) {
     redirect("/signup?error=missing-fields");
@@ -71,8 +88,7 @@ export async function signInWithCredentialsAction(
   _previousState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const username = getStringValue(formData, "username");
-  const password = getStringValue(formData, "password");
+  const { username, password } = getCredentials(formData);
 
   if (!username || !password) {
     return { error: "Username and password are required" };
@@ -95,25 +111,23 @@ export async function signInWithCredentialsAction(
   return {};
 }
 
-export async function loginAction(formUsername: string, formPassword: string) {
-  const formData = new FormData();
-
-  formData.set("username", formUsername);
-  formData.set("password", formPassword);
-
-  return signInWithCredentialsAction({}, formData);
-}
-
-export async function updateBankStartingBalanceAction(
-  _previousState: BankFormState,
-  formData: FormData,
-): Promise<BankFormState> {
+export async function updateBankStartingBalanceFormAction(formData: FormData) {
   const user = await requireUser();
   const startingBalanceValue = getStringValue(formData, "startingBalance");
   const startingBalance = Number(startingBalanceValue);
 
   if (!startingBalanceValue || Number.isNaN(startingBalance)) {
-    return { error: "Enter a valid starting balance" };
+    redirect(
+      `/signup/addbankinfo?error=${encodeURIComponent(
+        "Enter a valid starting balance",
+      )}`,
+    );
+  }
+
+  const userSetup = await getUserOnboardingStatus(user.id);
+
+  if (!userSetup || userSetup.onboardingComplete) {
+    redirect("/dashboard");
   }
 
   await updateBankStartingBalanceByUserId({
@@ -121,15 +135,43 @@ export async function updateBankStartingBalanceAction(
     startingBalance,
   });
 
-  return { success: "Starting balance updated" };
+  redirect("/dashboard");
 }
 
-export async function updateBankStartingBalanceFormAction(formData: FormData) {
-  const result = await updateBankStartingBalanceAction({}, formData);
+export async function updateUserProfileAction(
+  _previousState: UpdateUserProfileFormState,
+  formData: FormData,
+): Promise<UpdateUserProfileFormState> {
+  const username = getStringValue(formData, "username");
+  const password = getStringValue(formData, "password");
+  const email = getStringValue(formData, "email");
+  const name = getStringValue(formData, "name");
 
-  if (result.error) {
-    redirect(`/signup/addbankinfo?error=${encodeURIComponent(result.error)}`);
+  if (!name) {
+    return { error: "Name is required" };
   }
 
-  redirect("/dashboard");
+  const user = await requireUser();
+
+  try {
+    await UpdateUserProfile({
+      username: username || undefined,
+      name,
+      password: password || undefined,
+      email: email || undefined,
+      userId: user.id,
+    });
+  } catch {
+    return { error: "Could not update user profile" };
+  }
+
+  return { success: "User profile updated" };
+}
+
+export async function deleteUserAction() {
+  const user = await requireUser();
+
+  await deleteUser(user.id);
+
+  redirect("/");
 }

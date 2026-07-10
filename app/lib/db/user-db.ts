@@ -4,7 +4,7 @@ import type {
   LoginWithCredentialsInput,
   SignUpWithCredentialsInput,
   UpdateBankStartingBalanceByUserIdInput,
-  UpdateBankStartingBalanceInput,
+  UpdateUserProfileDBInput,
 } from "../../../types/types";
 import { prisma } from "./prisma";
 
@@ -37,17 +37,29 @@ async function verifyPassword(password: string, hashedPassword: string) {
 export async function getUserByEmail(email: string) {
   return prisma.user.findUnique({
     where: { email },
+    select: {
+      email: true,
+    },
   });
 }
 
 export async function setupNewOAuthUser(userId: string) {
-  return prisma.bank.upsert({
+  await prisma.bank.upsert({
     where: { userId },
     update: {},
     create: {
       userId,
       savings: 0,
       currentBalance: 0,
+    },
+  });
+}
+
+export async function getUserOnboardingStatus(userId: string) {
+  return prisma.bank.findUnique({
+    where: { userId },
+    select: {
+      onboardingComplete: true,
     },
   });
 }
@@ -60,6 +72,9 @@ export async function signUpWithUserCredentials({
 }: SignUpWithCredentialsInput) {
   const existingUsername = await prisma.user.findUnique({
     where: { username },
+    select: {
+      id: true,
+    },
   });
 
   if (existingUsername) {
@@ -76,7 +91,7 @@ export async function signUpWithUserCredentials({
 
   const hashedPassword = await hashPassword(password);
 
-  const user = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email,
       name,
@@ -89,9 +104,12 @@ export async function signUpWithUserCredentials({
         },
       },
     },
+    select: {
+      id: true,
+    },
   });
 
-  return { user };
+  return {};
 }
 
 export async function loginWithUserCredentials({
@@ -100,6 +118,13 @@ export async function loginWithUserCredentials({
 }: LoginWithCredentialsInput) {
   const user = await prisma.user.findUnique({
     where: { username },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      password: true,
+    },
   });
 
   if (!user?.password) {
@@ -112,43 +137,73 @@ export async function loginWithUserCredentials({
     return null;
   }
 
-  return user;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    image: user.image,
+  };
+}
+
+export async function getUserProfileById(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      name: true,
+      email: true,
+      username: true,
+    },
+  });
 }
 
 export async function updateBankStartingBalanceByUserId({
   userId,
   startingBalance,
 }: UpdateBankStartingBalanceByUserIdInput) {
-  const bank = await prisma.bank.upsert({
+  const bank = await prisma.bank.update({
     where: { userId },
-    update: {
+    data: {
       currentBalance: startingBalance,
+      onboardingComplete: true,
     },
-    create: {
-      userId,
-      savings: 0,
-      currentBalance: startingBalance,
+    select: {
+      savings: true,
+      currentBalance: true,
+      lastUpdated: true,
     },
   });
 
   return { bank };
 }
 
-export async function updateBankStartingBalance({
+export async function UpdateUserProfile({
   username,
-  startingBalance,
-}: UpdateBankStartingBalanceInput) {
-  const user = await prisma.user.findUnique({
-    where: { username },
-    select: { id: true },
+  name,
+  password,
+  email,
+  userId,
+}: UpdateUserProfileDBInput) {
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  const hashedPassword = password ? await hashPassword(password) : undefined;
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      username,
+      password: hashedPassword,
+      email,
+      name,
+    },
   });
 
-  if (!user) {
-    return { error: "User not found" };
-  }
+  return { message: "user updated" };
+}
 
-  return updateBankStartingBalanceByUserId({
-    userId: user.id,
-    startingBalance,
+export async function deleteUser(userId: string) {
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  await prisma.user.delete({
+    where: { id: userId },
   });
 }

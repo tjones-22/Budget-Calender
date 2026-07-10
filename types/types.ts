@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 
-export type BillType = "payday" | "bill" | "purchase";
+export type BillType = "payday" | "bill" | "purchase" | "savings";
 
 export type Bill = {
   type: BillType;
   name: string;
+  date?: Date
 };
 
 export type Day = {
@@ -16,7 +17,7 @@ export type AuthFormState = {
   error?: string;
 };
 
-export type BankFormState = {
+export type UpdateUserProfileFormState = {
   error?: string;
   success?: string;
 };
@@ -33,18 +34,28 @@ export type LoginWithCredentialsInput = {
   password: string;
 };
 
-export type UpdateBankStartingBalanceInput = {
-  username: string;
-  startingBalance: number;
-};
-
 export type UpdateBankStartingBalanceByUserIdInput = {
   userId: string;
   startingBalance: number;
 };
 
+export type UpdateUserProfileDBInput = {
+  username?:string,
+  name:string,
+  password?:string,
+  email?:string,
+  userId:string,
+}
+
 export type SubmitButtonProps = {
   children: ReactNode;
   pendingText?: string;
   className?: string;
+};
+
+export type AddBillInput = {
+  name: string;
+  type: BillType;
+  date: Date;
+  userId: string;
 };
