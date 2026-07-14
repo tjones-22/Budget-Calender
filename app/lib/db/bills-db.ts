@@ -67,8 +67,8 @@ export async function AddBill({
     userId
 }: AddBillInput ){
 
-
-    await prisma.bills.create({
+    
+    return await prisma.bills.create({
         data:{
             name,
             type,

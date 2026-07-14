@@ -11,18 +11,20 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String?
-  email         String?   @unique
-  image         String?
-  username      String?   @unique
-  password      String?
+  email         String?        @unique
   emailVerified DateTime?
+  image         String?
+  username      String?        @unique
+  password      String?
   accounts      Account[]
   sessions      Session[]
   bills         Bills[]
   bank          Bank?
+  notifications Notification[]
 }
+
 
 model Account {
   userId            String
@@ -50,14 +52,14 @@ model Session {
 }
 
 
-
 model Bills {
-  id     String   @id @default(cuid())
-  name  String
-  type   String
-  date   DateTime
-  userId String
-  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String         @id @default(cuid())
+  name          String
+  type          String
+  date          DateTime
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications Notification[]
 
   @@index([userId])
 }
@@ -71,4 +73,19 @@ model Bank {
   onboardingComplete Boolean @default(false)
   userId         String   @unique
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  description String
+  sendDate    DateTime
+  userId      String
+  billId     String?
+
+  user User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bill Bills? @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([billId])
+  @@index([sendDate])
 }

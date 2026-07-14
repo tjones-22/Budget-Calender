@@ -7,6 +7,12 @@ export type Bill = {
   name: string;
   date?: Date
 };
+export type Notification ={
+  id: string,
+  description:string,
+  sendDate: Date,
+  
+}
 
 export type Day = {
   dayNumber: number;
