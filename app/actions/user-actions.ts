@@ -10,9 +10,7 @@ import type {
 import { requireUser } from "../lib/auth/session";
 import {
   deleteUser,
-  getUserOnboardingStatus,
   signUpWithUserCredentials,
-  updateBankStartingBalanceByUserId,
   UpdateUserProfile,
 } from "../lib/db/user-db";
 
@@ -109,33 +107,6 @@ export async function signInWithCredentialsAction(
   }
 
   return {};
-}
-
-export async function updateBankStartingBalanceFormAction(formData: FormData) {
-  const user = await requireUser();
-  const startingBalanceValue = getStringValue(formData, "startingBalance");
-  const startingBalance = Number(startingBalanceValue);
-
-  if (!startingBalanceValue || Number.isNaN(startingBalance)) {
-    redirect(
-      `/signup/addbankinfo?error=${encodeURIComponent(
-        "Enter a valid starting balance",
-      )}`,
-    );
-  }
-
-  const userSetup = await getUserOnboardingStatus(user.id);
-
-  if (!userSetup || userSetup.onboardingComplete) {
-    redirect("/dashboard");
-  }
-
-  await updateBankStartingBalanceByUserId({
-    userId: user.id,
-    startingBalance,
-  });
-
-  redirect("/dashboard");
 }
 
 export async function updateUserProfileAction(

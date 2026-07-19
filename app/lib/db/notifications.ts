@@ -1,19 +1,11 @@
 import { prisma } from "./prisma";
+import { getTodayRange } from "../dates";
 
 export async function getNotificationsByDay( userID:string){
-  const now = new Date();
 
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-  );
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
-  const startOfTomorrow = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() + 1,
-  );
+  const { startOfToday, startOfTomorrow } = getTodayRange();
 
     return await prisma.notification.findMany({
         where: {
@@ -30,11 +22,12 @@ export async function getNotificationsByDay( userID:string){
             description:true,
             sendDate:true,
             id:true,
+            amount:true,
         }
     })
 }
 
-export async function createNotification (description:string, sendDate:Date, billId:string, userId:string) {
+export async function createNotification (description:string, sendDate:Date, billId:string, userId:string, amount:number) {
 
     await prisma.notification.create({
         data:{
@@ -42,6 +35,7 @@ export async function createNotification (description:string, sendDate:Date, bil
             sendDate,
             billId,
             userId,
+            amount,
         }
     });
     

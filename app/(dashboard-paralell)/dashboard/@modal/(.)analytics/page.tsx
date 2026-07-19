@@ -1,4 +1,4 @@
-import { getUserBankInfoAction } from "@/app/actions/dashboard-actions";
+import { getUserBankInfoAction } from "@/app/actions/bank-actions";
 import Analytics from "@/app/components/Analytics";
 import Modal from "@/app/components/Modal";
 

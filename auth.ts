@@ -3,10 +3,8 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { prisma } from "./app/lib/db/prisma";
-import {
-  loginWithUserCredentials,
-  setupNewOAuthUser,
-} from "./app/lib/db/user-db";
+import { setupNewOAuthUser } from "./app/lib/db/bank-db";
+import { loginWithUserCredentials } from "./app/lib/db/user-db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),

@@ -27,7 +27,7 @@ export default async function DashboardLayout({
         <section className="grid gap-4 min-[850px]:grid-cols-2">
           {notifications}
 
-          <div className="flex h-full w-full flex-col items-center justify-between">
+          <div className="flex h-full w-full flex-col items-center justify-between gap-4">
             {day}
             {analytics}
           </div>

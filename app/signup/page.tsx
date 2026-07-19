@@ -64,7 +64,7 @@ export default function SignUpPage() {
 
         <form action={signUpWithGoogleAction} className="mt-4">
           <SubmitButton
-            pendingText="Creating account..."
+            pendingText="Authenticating..."
             className="w-full rounded-md border border-gray-300 px-4 py-2 font-semibold text-gray-900 hover:bg-gray-100"
           >
             Sign Up With Google

@@ -1,12 +1,18 @@
 import { addBillAction } from "../actions/bill-actions";
 import SubmitButton from "./FormSubmitButton";
 
-export function AddBill({ date }: { date?: string }) {
+export function AddBill({
+  date,
+  redirectHref = "/dashboard/calender",
+}: {
+  date?: string;
+  redirectHref?: string;
+}) {
   return (
     <section className="w-full rounded-lg bg-white p-6 text-gray-950 shadow-xl">
     
 
-      <form action={addBillAction.bind(null,"/dashboard/calender")}
+      <form action={addBillAction.bind(null, redirectHref)}
       className="space-y-4">
         <label className="block">
           <span className="text-sm font-medium">Name</span>
@@ -17,6 +23,17 @@ export function AddBill({ date }: { date?: string }) {
             className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-blue-700"
           />
         </label>
+
+         <label className="block">
+            <span className="text-sm font-medium">Bill Amount:</span>
+            <input
+              name="amount"
+              type="number"
+              step="0.01"
+              required
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-blue-700"
+            />
+          </label>
 
         <input type="hidden" name="date" value={date ?? ""} />
 

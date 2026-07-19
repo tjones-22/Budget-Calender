@@ -3,7 +3,6 @@ import { promisify } from "node:util";
 import type {
   LoginWithCredentialsInput,
   SignUpWithCredentialsInput,
-  UpdateBankStartingBalanceByUserIdInput,
   UpdateUserProfileDBInput,
 } from "../../../types/types";
 import { prisma } from "./prisma";
@@ -39,27 +38,6 @@ export async function getUserByEmail(email: string) {
     where: { email },
     select: {
       email: true,
-    },
-  });
-}
-
-export async function setupNewOAuthUser(userId: string) {
-  await prisma.bank.upsert({
-    where: { userId },
-    update: {},
-    create: {
-      userId,
-      savings: 0,
-      currentBalance: 0,
-    },
-  });
-}
-
-export async function getUserOnboardingStatus(userId: string) {
-  return prisma.bank.findUnique({
-    where: { userId },
-    select: {
-      onboardingComplete: true,
     },
   });
 }
@@ -154,26 +132,6 @@ export async function getUserProfileById(userId: string) {
       username: true,
     },
   });
-}
-
-export async function updateBankStartingBalanceByUserId({
-  userId,
-  startingBalance,
-}: UpdateBankStartingBalanceByUserIdInput) {
-  const bank = await prisma.bank.update({
-    where: { userId },
-    data: {
-      currentBalance: startingBalance,
-      onboardingComplete: true,
-    },
-    select: {
-      savings: true,
-      currentBalance: true,
-      lastUpdated: true,
-    },
-  });
-
-  return { bank };
 }
 
 export async function UpdateUserProfile({

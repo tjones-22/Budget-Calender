@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { updateBankStartingBalanceFormAction } from "../../actions/user-actions";
+import { updateBankStartingBalanceFormAction } from "../../actions/bank-actions";
 import { requireUser } from "../../lib/auth/session";
-import { getUserOnboardingStatus } from "../../lib/db/user-db";
+import { getUserOnboardingStatus } from "../../lib/db/bank-db";
 
 export default async function AddBankInfoPage() {
   const user = await requireUser();
@@ -24,6 +24,17 @@ export default async function AddBankInfoPage() {
             <span className="text-sm font-medium">Starting balance</span>
             <input
               name="startingBalance"
+              type="number"
+              step="0.01"
+              required
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-blue-700"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-medium">Starting Savings</span>
+            <input
+              name="startingSavings"
               type="number"
               step="0.01"
               required

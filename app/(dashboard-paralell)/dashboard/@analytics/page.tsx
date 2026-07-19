@@ -1,4 +1,4 @@
-import { getUserBankInfoAction } from "@/app/actions/dashboard-actions";
+import { getUserBankInfoAction } from "@/app/actions/bank-actions";
 import Analytics from "@/app/components/Analytics";
 import Link from "next/link";
 
@@ -10,6 +10,7 @@ export default async function AnalyticsSlot() {
       <Analytics
         currentBalance={usersBankInfo?.currentBalance}
         savings={usersBankInfo?.savings}
+        compact
       />
     </Link>
   );

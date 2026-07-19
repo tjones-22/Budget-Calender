@@ -11,6 +11,7 @@ export type Notification ={
   id: string,
   description:string,
   sendDate: Date,
+  amount: number,
   
 }
 
@@ -43,6 +44,7 @@ export type LoginWithCredentialsInput = {
 export type UpdateBankStartingBalanceByUserIdInput = {
   userId: string;
   startingBalance: number;
+  startingSavings:number
 };
 
 export type UpdateUserProfileDBInput = {
@@ -64,4 +66,5 @@ export type AddBillInput = {
   type: BillType;
   date: Date;
   userId: string;
+  amount:number
 };

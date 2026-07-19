@@ -6,6 +6,7 @@ import {
   getBillsByUserForMonth,
   AddBill,
 } from "../lib/db/bills-db";
+import { addUsersSavings } from "../lib/db/bank-db";
 import {
   createNotification,
   deleteNotification,
@@ -15,29 +16,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { Bill, Notification } from "@/types/types";
 import { isBillType } from "../lib/bills";
-
-function parseLocalDate(dateValue: string) {
-  const [yearValue, monthValue, dayValue] = dateValue.split("-");
-  const year = Number(yearValue);
-  const month = Number(monthValue);
-  const day = Number(dayValue);
-
-  if (!year || !month || !day) {
-    return null;
-  }
-
-  const date = new Date(year, month - 1, day);
-
-  if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
-  ) {
-    return null;
-  }
-
-  return date;
-}
+import { parseLocalDate } from "../lib/dates";
 
 // server action for getting a user's bills
 export async function getUsersBillsAction() {
@@ -87,9 +66,14 @@ export async function addBillAction(href: string, formData: FormData) {
   const type = String(formData.get("type") ?? "");
   const dateValue = String(formData.get("date") ?? "");
   const date = parseLocalDate(dateValue);
+  const amount = Number(formData.get("amount") ?? "");
 
   if (!name || !isBillType(type) || !date) {
     throw new Error("Invalid bill form data");
+  }
+
+  if(type === "savings"){
+    addUsersSavings(user.id, amount);
   }
 
   const bill = await AddBill({
@@ -97,9 +81,10 @@ export async function addBillAction(href: string, formData: FormData) {
     type,
     date,
     userId: user.id,
+    amount
   });
 
-  await createNotification(name, date, bill.id, user.id);
+  await createNotification(name, date, bill.id, user.id, amount);
 
   redirect(href);
 }
