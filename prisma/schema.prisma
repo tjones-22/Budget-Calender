@@ -7,25 +7,24 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String?
-  email         String?        @unique
-  emailVerified DateTime?
-  image         String?
-  username      String?        @unique
-  password      String?
-  accounts      Account[]
-  sessions      Session[]
-  bills         Bills[]
-  bank          Bank?
-  notifications Notification[]
+  id             String          @id @default(cuid())
+  name           String?
+  email          String?         @unique
+  emailVerified  DateTime?
+  image          String?
+  username       String?         @unique
+  password       String?
+  accounts       Account[]
+  sessions       Session[]
+  bills          Bills[]
+  bank           Bank?
+  notifications  Notification[]
   recurringBills RecurringBill[]
 }
-
 
 model Account {
   userId            String
@@ -52,14 +51,13 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-
 model Bills {
   id            String         @id @default(cuid())
   name          String
   type          String
   amount        Float
   date          DateTime
-  applied         Boolean    @default(false)
+  applied       Boolean        @default(false)
   userId        String
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   notifications Notification[]
@@ -76,8 +74,8 @@ model RecurringBill {
   startDate DateTime
   active    Boolean  @default(true)
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
@@ -86,23 +84,23 @@ model RecurringBill {
 }
 
 model Bank {
-  id             String   @id @default(cuid())
-  savings        Float
-  currentBalance Float
-  lastUpdated    DateTime @default(now()) @updatedAt
-  onboardingComplete Boolean @default(false)
+  id                 String   @id @default(cuid())
+  savings            Float
+  currentBalance     Float
+  lastUpdated        DateTime @default(now()) @updatedAt
+  onboardingComplete Boolean  @default(false)
 
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
   id          String   @id @default(cuid())
   description String
-  amount     Float   @default(0)
+  amount      Float    @default(0)
   sendDate    DateTime
   userId      String
-  billId     String?
+  billId      String?
 
   user User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   bill Bills? @relation(fields: [billId], references: [id], onDelete: Cascade)
