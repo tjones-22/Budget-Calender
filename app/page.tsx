@@ -5,20 +5,20 @@ import Link from "next/link";
 export default function Home() {
   return (
     <>
-      <div className="flex h-auto min-w-full items-center justify-around bg-blue-950 p-4 text-yellow-300 dark:bg-black dark:text-white md:flex-row">
-        <h1 className="fade-in text-lg font-bold dark:text-amber-700 md:text-2xl">
+      <div className="flex h-auto min-w-full flex-col items-center gap-3 bg-blue-950 p-4 text-yellow-300 dark:bg-black dark:text-white sm:flex-row sm:justify-around">
+        <h1 className="fade-in text-center text-lg font-bold dark:text-amber-700 md:text-2xl">
           Welcome to Budget Calendar
         </h1>
-        <div className="flex w-1/3 flex-row items-center justify-evenly text-lg">
+        <div className="flex w-full flex-row items-center justify-center gap-3 text-base sm:w-auto sm:text-lg">
           <Link
-            className="hover-animation-timing rounded-lg bg-gray-900 p-3 hover:bg-amber-700"
+            className="hover-animation-timing rounded-lg bg-gray-900 px-4 py-2 text-center hover:bg-amber-700 sm:p-3"
             href="/login"
           >
             Login
           </Link>
 
           <Link
-            className="hover-animation-timing rounded-lg bg-gray-900 p-3 hover:bg-amber-700"
+            className="hover-animation-timing rounded-lg bg-gray-900 px-4 py-2 text-center hover:bg-amber-700 sm:p-3"
             href="/signup"
           >
             Sign Up
