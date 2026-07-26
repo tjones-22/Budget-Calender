@@ -50,7 +50,7 @@ export default function DayCard({
           <span
             key={bill.type}
             title={bill.name}
-            className={`h-2.5 w-2.5 rounded-full ${billTypeDotStyles[bill.type]}`}
+            className={`size-1.5 shrink-0 rounded-full sm:size-2.5 ${billTypeDotStyles[bill.type]}`}
           />
         ))}
       </div>

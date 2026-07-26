@@ -56,12 +56,12 @@ export default function Calender({
     .sort((firstBill, secondBill) => firstBill.dayNumber - secondBill.dayNumber);
 
   return (
-    <section className="min-w-3/4  rounded-lg border border-gray-200 bg-white p-4 text-gray-950 dark:border-gray-700 dark:bg-black dark:text-white ml-1 mt-3">
-      <div className="mb-4 flex items-center justify-between gap-4">
+    <section className="mb-[env(safe-area-inset-bottom)] w-full rounded-lg border border-gray-200 bg-white p-2 text-gray-950 dark:border-gray-700 dark:bg-black dark:text-white sm:p-4 ml-1 mt-3">
+      <div className="mb-3 flex items-center justify-between gap-2 sm:mb-4 sm:gap-4">
         {navigationHref ? (
           <Link
             href={getMonthHref(previousMonth)}
-            className="rounded-md border border-gray-700 px-3 py-1 text-sm font-semibold hover:bg-gray-100 dark:border-gray-300 dark:hover:bg-gray-900"
+            className="rounded-md border border-gray-700 px-2 py-1 text-xs font-semibold hover:bg-gray-100 dark:border-gray-300 dark:hover:bg-gray-900 sm:px-3 sm:text-sm"
           >
             Previous
           </Link>
@@ -69,12 +69,14 @@ export default function Calender({
           <span />
         )}
 
-        <h2 className="text-lg font-semibold sm:text-center">{monthName}</h2>
+        <h2 className="text-sm font-semibold sm:text-center sm:text-lg">
+          {monthName}
+        </h2>
 
         {navigationHref ? (
           <Link
             href={getMonthHref(nextMonth)}
-            className="rounded-md border border-gray-700 px-3 py-1 text-sm font-semibold hover:bg-gray-100 dark:border-gray-300 dark:hover:bg-gray-900"
+            className="rounded-md border border-gray-700 px-2 py-1 text-xs font-semibold hover:bg-gray-100 dark:border-gray-300 dark:hover:bg-gray-900 sm:px-3 sm:text-sm"
           >
             Next
           </Link>
@@ -84,11 +86,11 @@ export default function Calender({
       </div>
 
       <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-        <div className="grid flex-1 grid-cols-7 justify-items-center gap-x-2 gap-y-3">
+        <div className="grid flex-1 grid-cols-7 items-start justify-items-center gap-1 sm:gap-x-2 sm:gap-y-3">
           {daysOfWeek.map((day) => (
             <div
               key={day}
-              className="w-full text-center text-xs font-semibold uppercase text-gray-500 dark:text-gray-400"
+              className="w-full text-center text-[0.6rem] font-semibold uppercase text-gray-500 dark:text-gray-400 sm:text-xs"
             >
               {day}
             </div>
@@ -98,7 +100,7 @@ export default function Calender({
             <div
               key={`empty-start-${index}`}
               aria-hidden="true"
-              className="aspect-square w-full max-w-24"
+            className="h-12 w-full max-w-10 sm:h-16 sm:max-w-16 md:aspect-square md:h-auto md:max-w-24"
             />
           ))}
 
@@ -106,7 +108,8 @@ export default function Calender({
             <DayCard
               key={day.dayNumber}
               day={day}
-              className="aspect-square w-full max-w-24 items-center"
+              className="h-12 w-full max-w-10 items-center rounded-md p-1 sm:h-16 sm:max-w-16 sm:p-2 md:aspect-square md:h-auto md:max-w-24"
+              dayNumberClassName="text-sm sm:text-base"
               href={
                 interactiveDays
                   ? `/dashboard/add-bill?year=${year}&month=${monthIndex + 1}&day=${day.dayNumber}`
