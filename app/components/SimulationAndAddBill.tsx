@@ -12,6 +12,7 @@ type SimulationAndAddBillProps = {
   projectedSavings?: number | null;
   calendarYear?: number;
   calendarMonth?: number;
+  selectedDay?: number;
   billsByDay?: Record<number, Bill[]>;
 };
 
@@ -22,6 +23,7 @@ export default function SimulationAndAddBill({
   projectedSavings,
   calendarYear,
   calendarMonth,
+  selectedDay,
   billsByDay,
 }: SimulationAndAddBillProps) {
   const [showForm, setShowForm] = useState(false);
@@ -85,6 +87,7 @@ export default function SimulationAndAddBill({
         projectedSavings={projectedSavings}
         calendarYear={calendarYear}
         calendarMonth={calendarMonth}
+        selectedDay={selectedDay}
         billsByDay={billsByDay}
       />
 
@@ -98,5 +101,4 @@ export default function SimulationAndAddBill({
     </div>
   );
 }
-
 

@@ -10,6 +10,7 @@ export default function DayCard({
   weekdayName,
   headerClassName = "",
   href,
+  selected = false,
 }: {
   day: Day;
   className?: string;
@@ -18,13 +19,17 @@ export default function DayCard({
   weekdayName?: string;
   headerClassName?: string;
   href?: string;
+  selected?: boolean;
 }) {
   const weekdayClasses =
     weekdayNameClassName || "text-sm uppercase";
   const dayNumberClasses =
     dayNumberClassName || "text-base sm:text-sm";
   const sizeClasses = className || "max-w-fit";
-  const cardClasses = `flex min-h-fit flex-col rounded-md border border-gray-200 bg-white p-4 text-gray-950 dark:border-gray-700 dark:bg-black dark:text-white ${href ? "cursor-pointer transition hover:border-blue-500 hover:ring-2 hover:ring-blue-500/30 focus:outline-none focus-visible:border-blue-400 focus-visible:ring-4 focus-visible:ring-blue-500/70 active:border-blue-400 active:ring-4 active:ring-blue-500/70 dark:focus-visible:border-blue-400 dark:active:border-blue-400" : ""} ${sizeClasses}`;
+  const selectedClasses = selected
+    ? "border-blue-400 ring-4 ring-blue-500/70 dark:border-blue-400"
+    : "border-gray-200 dark:border-gray-700";
+  const cardClasses = `flex min-h-fit flex-col rounded-md border bg-white p-4 text-gray-950 dark:bg-black dark:text-white ${selectedClasses} ${href ? "cursor-pointer transition hover:border-blue-500 hover:ring-2 hover:ring-blue-500/30 focus:outline-none focus-visible:border-blue-400 focus-visible:ring-4 focus-visible:ring-blue-500/70 active:border-blue-400 active:ring-4 active:ring-blue-500/70 dark:focus-visible:border-blue-400 dark:active:border-blue-400" : ""} ${sizeClasses}`;
   const uniqueBillTypes = Array.from(
     new Map(day.bills.map((bill) => [bill.type, bill])).values(),
   );

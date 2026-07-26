@@ -28,11 +28,13 @@ export default function Calender({
   interactiveDays = false,
   billsByDay = {},
   navigationHref,
+  selectedDay,
 }: {
   month?: Date;
   interactiveDays?: boolean;
   billsByDay?: Record<number, Bill[]>;
   navigationHref?: string;
+  selectedDay?: number;
 }) {
   const days = getDaysInMonth(month, billsByDay);
   const year = month.getFullYear();
@@ -110,6 +112,7 @@ export default function Calender({
               day={day}
               className="h-12 w-full max-w-10 items-center rounded-md p-1 sm:h-16 sm:max-w-16 sm:p-2 md:aspect-square md:h-auto md:max-w-24"
               dayNumberClassName="text-sm sm:text-base"
+              selected={selectedDay === day.dayNumber}
               href={
                 interactiveDays
                   ? `/dashboard/add-bill?year=${year}&month=${monthIndex + 1}&day=${day.dayNumber}`

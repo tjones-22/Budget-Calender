@@ -6,6 +6,7 @@ type CalenderSimulationProps = {
   projectedSavings?: number | null;
   calendarYear?: number;
   calendarMonth?: number;
+  selectedDay?: number;
   billsByDay?: Record<number, Bill[]>;
 };
 
@@ -14,6 +15,7 @@ export default function CalenderSimulation({
   projectedSavings,
   calendarYear,
   calendarMonth,
+  selectedDay,
   billsByDay,
 }: CalenderSimulationProps) {
   const month =
@@ -32,6 +34,7 @@ export default function CalenderSimulation({
       <Calender
         month={month}
         billsByDay={billsByDay}
+        selectedDay={selectedDay}
         interactiveDays
         navigationHref="/dashboard/add-bill"
       />
