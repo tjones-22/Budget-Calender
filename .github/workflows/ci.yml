@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DATABASE_URL: file:./prisma/app.db
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/budget_calendar_test
       AUTH_SECRET: test-secret
       AUTH_TRUST_HOST: true
       OPENAI_API_KEY: test-key
