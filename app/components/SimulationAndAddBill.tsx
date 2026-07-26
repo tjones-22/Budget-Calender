@@ -10,7 +10,8 @@ type SimulationAndAddBillProps = {
   redirectHref?: string;
   projectedBalance?: number | null;
   projectedSavings?: number | null;
-  month?: Date;
+  calendarYear?: number;
+  calendarMonth?: number;
   billsByDay?: Record<number, Bill[]>;
 };
 
@@ -19,7 +20,8 @@ export default function SimulationAndAddBill({
   redirectHref,
   projectedBalance,
   projectedSavings,
-  month,
+  calendarYear,
+  calendarMonth,
   billsByDay,
 }: SimulationAndAddBillProps) {
   const [showForm, setShowForm] = useState(false);
@@ -81,7 +83,8 @@ export default function SimulationAndAddBill({
       <CalenderSimulation
         projectedBalance={projectedBalance}
         projectedSavings={projectedSavings}
-        month={month}
+        calendarYear={calendarYear}
+        calendarMonth={calendarMonth}
         billsByDay={billsByDay}
       />
 
@@ -95,6 +98,5 @@ export default function SimulationAndAddBill({
     </div>
   );
 }
-
 
 

@@ -4,16 +4,23 @@ import { formatCurrency } from "../lib/format";
 type CalenderSimulationProps = {
   projectedBalance?: number | null;
   projectedSavings?: number | null;
-  month?: Date;
+  calendarYear?: number;
+  calendarMonth?: number;
   billsByDay?: Record<number, Bill[]>;
 };
 
 export default function CalenderSimulation({
   projectedBalance,
   projectedSavings,
-  month,
+  calendarYear,
+  calendarMonth,
   billsByDay,
 }: CalenderSimulationProps) {
+  const month =
+    calendarYear && calendarMonth
+      ? new Date(calendarYear, calendarMonth - 1, 1)
+      : new Date();
+
   return (
     <div className="flex w-full flex-col items-center gap-6">
         

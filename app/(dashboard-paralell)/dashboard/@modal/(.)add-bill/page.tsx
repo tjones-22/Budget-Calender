@@ -54,11 +54,37 @@ function getCalendarMonth({
   return new Date(parsedYear, parsedMonth - 1, 1);
 }
 
+function getCalendarParams({
+  year,
+  month,
+}: {
+  year?: string;
+  month?: string;
+}) {
+  const parsedYear = Number(year);
+  const parsedMonth = Number(month);
+
+  if (!parsedYear || !parsedMonth || parsedMonth < 1 || parsedMonth > 12) {
+    const today = new Date();
+
+    return {
+      calendarYear: today.getFullYear(),
+      calendarMonth: today.getMonth() + 1,
+    };
+  }
+
+  return {
+    calendarYear: parsedYear,
+    calendarMonth: parsedMonth,
+  };
+}
+
 export default async function AddBillModal({ searchParams }: AddBillModalProps) {
   const params = await searchParams;
   const dateValue = getDateValue(params);
   const selectedDate = parseLocalDate(dateValue);
   const month = getCalendarMonth(params);
+  const { calendarYear, calendarMonth } = getCalendarParams(params);
   const user = await requireUser();
 
   const simulation = selectedDate
@@ -76,7 +102,8 @@ export default async function AddBillModal({ searchParams }: AddBillModalProps) 
         redirectHref={getRedirectHref(params)}
         projectedBalance={simulation?.projectedBalance}
         projectedSavings={simulation?.projectedSavings}
-        month={month}
+        calendarYear={calendarYear}
+        calendarMonth={calendarMonth}
         billsByDay={billsByDay}
       />
     </Modal>
