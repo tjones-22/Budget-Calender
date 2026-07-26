@@ -1,15 +1,27 @@
 "use server"
 
 import { requireUser } from "../lib/auth/session"
-import { getStartOfDay } from "../lib/dates";
-import { applyBillsForTheDay } from "../lib/db/bank-db";
+import { parseLocalDate } from "../lib/dates";
+import {
+    applyBillSimulation,
+    applyUnappliedBillsFromMonthStartThroughToday,
+} from "../lib/db/bank-db";
 
-export async function applyBillsForToday( day?:Date){
+
+// ONLY USE FOR APPLYING TODAYS BILLS
+export async function applyBillsForToday(){
     const user = await requireUser();
-    const today = getStartOfDay();
 
-    
-
-    await applyBillsForTheDay(user.id, day ?? today);
+    await applyUnappliedBillsFromMonthStartThroughToday(user.id);
    
+}
+
+export async function applyBillsSimulation(formData:FormData,){
+    const user = await requireUser();
+    const date = parseLocalDate(String(formData.get("date") ?? ""));
+    if(!date){
+        throw new Error("Invalid Date");
+    }
+    
+    return await applyBillSimulation(user.id, date);
 }

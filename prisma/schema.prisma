@@ -23,6 +23,7 @@ model User {
   bills         Bills[]
   bank          Bank?
   notifications Notification[]
+  recurringBills RecurringBill[]
 }
 
 
@@ -56,9 +57,9 @@ model Bills {
   id            String         @id @default(cuid())
   name          String
   type          String
-  amount        Int
+  amount        Float
   date          DateTime
-    applied         Boolean    @default(false)
+  applied         Boolean    @default(false)
   userId        String
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   notifications Notification[]
@@ -66,6 +67,23 @@ model Bills {
   @@index([userId])
 }
 
+model RecurringBill {
+  id        String   @id @default(cuid())
+  name      String
+  type      String
+  amount    Float
+  frequency String
+  startDate DateTime
+  active    Boolean  @default(true)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, active])
+}
 
 model Bank {
   id             String   @id @default(cuid())
@@ -81,7 +99,7 @@ model Bank {
 model Notification {
   id          String   @id @default(cuid())
   description String
-  amount     Int   @default(0)
+  amount     Float   @default(0)
   sendDate    DateTime
   userId      String
   billId     String?

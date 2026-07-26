@@ -1,6 +1,17 @@
 import type { UpdateBankStartingBalanceByUserIdInput } from "@/types/types";
 import { prisma } from "./prisma";
-import { getBillsByDay } from "./bills-db";
+import {
+  getBillsByDay,
+  getBillsByRange,
+  getUnappliedBillsFromMonthStartThroughDay,
+} from "./bills-db";
+import { getStartOfDay, getStartOfNextDay } from "../dates";
+
+type BillBankEffect = {
+  id: string;
+  amount: number;
+  type: string;
+};
 
 export async function setupNewOAuthUser(userId: string) {
   await prisma.bank.upsert({
@@ -112,19 +123,9 @@ export async function updateCurrentBalance(userId: string, amount: number) {
   });
 }
 
-export async function applyBillsForTheDay(userId: string, date: Date) {
-  const bills = await getBillsByDay(
-    userId,
-    date.getFullYear(),
-    date.getMonth() + 1,
-    date.getDate(),
-  );
+function getBillTotals(bills: BillBankEffect[]) {
   let currentBalanceChange = 0;
   let currentSavingsChange = 0;
-
-  if (bills.length == 0) return;
-
-  const billIds = bills.map((bill) => bill.id);
 
   for (const bill of bills) {
     if (bill.type === "payday") {
@@ -139,32 +140,144 @@ export async function applyBillsForTheDay(userId: string, date: Date) {
     if (bill.type === "bill" || bill.type === "purchase") {
       currentBalanceChange -= bill.amount;
     }
-
-
-    //transaction will update currentBalance,savings,and applied. If one fails it will undo changes it just made
-    await prisma.$transaction([
-      prisma.bank.update({
-        where: { userId },
-        data: {
-          currentBalance: {
-            increment: currentBalanceChange,
-          },
-          savings: {
-            increment: currentSavingsChange,
-          },
-        },
-      }),
-
-      prisma.bills.updateMany({
-        where: {
-          id: {
-            in: billIds,
-          },
-        },
-        data: {
-          applied: true,
-        },
-      }),
-    ]);
   }
+
+  return {
+    currentBalanceChange,
+    currentSavingsChange,
+  };
+}
+
+async function applyBillsToBank(userId: string, bills: BillBankEffect[]) {
+  if (bills.length === 0) {
+    return {
+      appliedCount: 0,
+      appliedBills: bills,
+    };
+  }
+
+  const billIds = bills.map((bill) => bill.id);
+  const { currentBalanceChange, currentSavingsChange } = getBillTotals(bills);
+
+  // transaction will update currentBalance, savings, and applied together.
+  // If one fails, Prisma rolls back all changes in this transaction.
+  await prisma.$transaction([
+    prisma.bank.update({
+      where: { userId },
+      data: {
+        currentBalance: {
+          increment: currentBalanceChange,
+        },
+        savings: {
+          increment: currentSavingsChange,
+        },
+      },
+    }),
+
+    prisma.bills.updateMany({
+      where: {
+        userId,
+        id: {
+          in: billIds,
+        },
+      },
+      data: {
+        applied: true,
+      },
+    }),
+  ]);
+
+  return {
+    appliedCount: bills.length,
+    appliedBills: bills,
+  };
+}
+
+export async function applyBillsForTheDay(userId: string, date: Date) {
+  const bills = await getBillsByDay(
+    userId,
+    date.getFullYear(),
+    date.getMonth() + 1,
+    date.getDate(),
+  );
+
+  return applyBillsToBank(userId, bills);
+}
+
+export async function applyUnappliedBillsFromMonthStartThroughToday(
+  userId: string,
+  date = new Date(),
+) {
+  const bills = await getUnappliedBillsFromMonthStartThroughDay(userId, date);
+
+  return applyBillsToBank(userId, bills);
+}
+
+
+
+
+
+export async function applyBillSimulation(
+  userId: string,
+  selectedDay: Date,
+) {
+ 
+  const bank = await getUserBankInfo(userId);
+
+  if (!bank) {
+    return null;
+  }
+
+  let currentBalance = bank.currentBalance 
+  let savings = bank.savings;
+  const today = getStartOfDay();
+  const selectedDate = getStartOfDay(selectedDay);
+
+  if(selectedDate.getTime() == today.getTime()){
+    return {
+      projectedBalance: currentBalance,
+      projectedSavings: savings,
+
+    };
+  }
+
+  const isFutureProjection = selectedDate > today;
+  const bills = isFutureProjection
+    ? await getBillsByRange(
+        userId,
+        getStartOfNextDay(today),
+        getStartOfNextDay(selectedDate),
+      )
+    : await getBillsByRange(
+        userId,
+        getStartOfNextDay(selectedDate),
+        getStartOfNextDay(today),
+      );
+
+  if (bills.length === 0) {
+    return {
+      projectedBalance: currentBalance,
+      projectedSavings: savings,
+    };
+  }
+
+  for (const bill of bills) {
+    if (bill.type === "payday") {
+      currentBalance += isFutureProjection ? bill.amount : -bill.amount;
+    }
+
+    if (bill.type === "purchase" || bill.type === "bill") {
+      currentBalance += isFutureProjection ? -bill.amount : bill.amount;
+    }
+
+    if (bill.type === "savings") {
+      currentBalance += isFutureProjection ? -bill.amount : bill.amount;
+      savings += isFutureProjection ? bill.amount : -bill.amount;
+    }
+  }
+
+  return {
+    projectedBalance: currentBalance,
+    projectedSavings: savings,
+  };
 }

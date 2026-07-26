@@ -5,23 +5,42 @@ import {
   getBillsByUser,
   getBillsByUserForMonth,
   AddBill,
+  addRecurringBill,
+  deleteBillById,
+  deleteRecurringBillById,
 } from "../lib/db/bills-db";
-import { addUsersSavings } from "../lib/db/bank-db";
+import { applyUnappliedBillsFromMonthStartThroughToday } from "../lib/db/bank-db";
 import {
   createNotification,
   deleteNotification,
-  getNotificationsByDay
+  getNotificationsByDay,
 } from "../lib/db/notifications";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { Bill, Notification } from "@/types/types";
-import { isBillType } from "../lib/bills";
+import { isBillType, isRecurrenceOption } from "../lib/bills";
 import { parseLocalDate } from "../lib/dates";
+
+function getAmountValue(formData: FormData) {
+  const amountValue = formData.get("amount");
+
+  if (typeof amountValue !== "string" || amountValue.trim() === "") {
+    return {
+      amount: null,
+      rawAmount: amountValue,
+    };
+  }
+
+  const amount = Number(amountValue);
+
+  return {
+    amount: Number.isFinite(amount) && amount > 0 ? amount : null,
+    rawAmount: amountValue,
+  };
+}
 
 // server action for getting a user's bills
 export async function getUsersBillsAction() {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
   const user = await requireUser();
   const userBills = await getBillsByUser(user.id);
 
@@ -32,8 +51,6 @@ export async function getUsersBillsByDayForMonthAction(
   year: number,
   month: number,
 ) {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
   const user = await requireUser();
   const userBills = await getBillsByUserForMonth(user.id, year, month);
 
@@ -47,9 +64,13 @@ export async function getUsersBillsByDayForMonthAction(
     billsByDay[dayNumber] = [
       ...(billsByDay[dayNumber] ?? []),
       {
+        id: bill.id,
+        recurringBillId: bill.recurringBillId,
+        isRecurring: bill.isRecurring,
         name: bill.name,
         type: bill.type,
         date: bill.date,
+        amount: bill.amount,
       },
     ];
 
@@ -58,22 +79,36 @@ export async function getUsersBillsByDayForMonthAction(
 }
 
 export async function addBillAction(href: string, formData: FormData) {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
   const user = await requireUser();
 
   const name = String(formData.get("name") ?? "");
   const type = String(formData.get("type") ?? "");
   const dateValue = String(formData.get("date") ?? "");
+  const recurrence = String(formData.get("recurrence") ?? "none");
   const date = parseLocalDate(dateValue);
-  const amount = Number(formData.get("amount") ?? "");
+  const { amount, rawAmount } = getAmountValue(formData);
 
   if (!name || !isBillType(type) || !date) {
     throw new Error("Invalid bill form data");
   }
 
-  if(type === "savings"){
-    addUsersSavings(user.id, amount);
+  if (amount === null) {
+    throw new Error(`Invalid bill amount: ${String(rawAmount)}`);
+  }
+
+  if (!isRecurrenceOption(recurrence)) {
+    throw new Error("Invalid recurrence option");
+  }
+
+  if (recurrence !== "none") {
+    await addRecurringBill({
+      name,
+      type,
+      amount,
+      frequency: recurrence,
+      startDate: date,
+      userId: user.id,
+    });
   }
 
   const bill = await AddBill({
@@ -81,16 +116,21 @@ export async function addBillAction(href: string, formData: FormData) {
     type,
     date,
     userId: user.id,
-    amount
+    amount,
   });
 
   await createNotification(name, date, bill.id, user.id, amount);
+  await applyUnappliedBillsFromMonthStartThroughToday(user.id);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/analytics");
+  revalidatePath("/dashboard/calender");
+  revalidatePath("/dashboard/notifications");
 
   redirect(href);
 }
 
 export async function deleteNotificationAction(notificationID: string) {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
   const user = await requireUser();
 
   await deleteNotification(notificationID, user.id);
@@ -98,8 +138,30 @@ export async function deleteNotificationAction(notificationID: string) {
   revalidatePath("/dashboard/notifications");
 }
 
+export async function deleteBillAction(billId: string) {
+  const user = await requireUser();
+
+  await deleteBillById(user.id, billId);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/analytics");
+  revalidatePath("/dashboard/calender");
+  revalidatePath("/dashboard/notifications");
+}
+
+export async function deleteRecurringBillAction(recurringBillId: string) {
+  const user = await requireUser();
+
+  await deleteRecurringBillById(user.id, recurringBillId);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/analytics");
+  revalidatePath("/dashboard/calender");
+  revalidatePath("/dashboard/notifications");
+}
+
 export async function getNotificationsByDayAction() {
   const user = await requireUser();
-  const notifications =  await getNotificationsByDay(user.id);
+  const notifications = await getNotificationsByDay(user.id);
   return notifications as Notification[];
 }

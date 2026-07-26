@@ -25,6 +25,9 @@ export default function DayCard({
     dayNumberClassName || "text-base sm:text-sm";
   const sizeClasses = className || "max-w-fit";
   const cardClasses = `flex min-h-fit flex-col rounded-md border border-gray-200 bg-white p-4 text-gray-950 dark:border-gray-700 dark:bg-black dark:text-white ${href ? "cursor-pointer transition hover:border-blue-500 hover:ring-2 hover:ring-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500" : ""} ${sizeClasses}`;
+  const uniqueBillTypes = Array.from(
+    new Map(day.bills.map((bill) => [bill.type, bill])).values(),
+  );
   const cardContent = (
     <>
       <div
@@ -43,9 +46,9 @@ export default function DayCard({
       </div>
 
       <div className="mt-auto flex w-full flex-row items-center justify-center gap-1">
-        {day.bills.map((bill, index) => (
+        {uniqueBillTypes.map((bill) => (
           <span
-            key={`${bill.name}-${bill.type}-${index}`}
+            key={bill.type}
             title={bill.name}
             className={`h-2.5 w-2.5 rounded-full ${billTypeDotStyles[bill.type]}`}
           />

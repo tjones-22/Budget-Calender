@@ -28,29 +28,38 @@ export default async function Analytics({
     day: "numeric",
   });
 
-  const accountBalance = currentBalance ?? 0;
-  const weeklyAmount = accountBalance - weeklyBillsData.weeklyAmount;
-  const monthlyAmount = accountBalance - weeklyBillsData.monthlyAmount;
-  const monthlySavings = weeklyBillsData.monthlySavings;
+  const accountBalance = currentBalance ?? weeklyBillsData.currentBalance;
+  const accountSavings = savings ?? weeklyBillsData.savings;
 
   return (
     <div className="w-full rounded-lg bg-gray-900 p-4 text-gray-300 dark:bg-white dark:text-black">
       <h3 className="border-b text-lg font-semibold">Analytics</h3>
 
       <div className="flex h-fit flex-col justify-evenly">
-        <h4>Account: {formatCurrency(currentBalance)}</h4>
-        <h4>Savings: {formatCurrency(savings)}</h4>
+        <h4>Account: {formatCurrency(accountBalance)}</h4>
+        <h4>Savings: {formatCurrency(accountSavings)}</h4>
 
         {!compact ? (
           <>
             <h4>
               End Of Week Balance ({weeklyStart} - {weeklyEnd}):{" "}
-              {formatCurrency(weeklyAmount)}
+              {formatCurrency(weeklyBillsData.endOfWeekBalance)}
             </h4>
 
-            <h4>End of Month Balance: {formatCurrency(monthlyAmount)}</h4>
+            <h4>
+              End of Week Savings:{" "}
+              {formatCurrency(weeklyBillsData.endOfWeekSavings)}
+            </h4>
 
-            <h4>End of Month Savings: {formatCurrency(monthlySavings)}</h4>
+            <h4>
+              End of Month Balance:{" "}
+              {formatCurrency(weeklyBillsData.endOfMonthBalance)}
+            </h4>
+
+            <h4>
+              End of Month Savings:{" "}
+              {formatCurrency(weeklyBillsData.endOfMonthSavings)}
+            </h4>
           </>
         ) : null}
       </div>

@@ -2,9 +2,6 @@ import { prisma } from "./prisma";
 import { getTodayRange } from "../dates";
 
 export async function getNotificationsByDay( userID:string){
-
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
   const { startOfToday, startOfTomorrow } = getTodayRange();
 
     return await prisma.notification.findMany({

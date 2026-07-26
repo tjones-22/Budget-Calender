@@ -1,3 +1,4 @@
+import { applyBillsForToday } from "@/app/actions/analytics-actions";
 import AccountMenu from "../../components/AccountMenu";
 import { requireUser } from "../../lib/auth/session";
 import { capitalizeName } from "../../lib/format";
@@ -5,6 +6,8 @@ import { capitalizeName } from "../../lib/format";
 export default async function DashboardPage() {
   const user = await requireUser();
   const displayName = capitalizeName(user.name ?? "User");
+
+  await applyBillsForToday();
 
   return (
     <header className="mb-6 flex items-center justify-between border-b border-gray-700 pb-4">

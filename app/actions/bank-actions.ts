@@ -3,14 +3,17 @@
 import { redirect } from "next/navigation";
 import { requireUser } from "../lib/auth/session";
 import {
+  applyUnappliedBillsFromMonthStartThroughToday,
   getUserBankInfo,
   getUserOnboardingStatus,
-  getUsersSavingsForTheMonth,
   updateBankStartingBalanceByUserId,
 } from "../lib/db/bank-db";
-import { getBillsByUserByWeek, getBillsByUserForMonth } from "../lib/db/bills-db";
-import { getCurrentMonthRange } from "../lib/dates";
-
+import { getUnappliedBillsByRange } from "../lib/db/bills-db";
+import {
+  getCurrentMonthRange,
+  getCurrentWeekRange,
+  getStartOfNextDay,
+} from "../lib/dates";
 
 function getStringValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -18,10 +21,39 @@ function getStringValue(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export async function getUserBankInfoAction() {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
+function getProjectedBankValues(
+  currentBalance: number,
+  savings: number,
+  bills: { amount: number; type: string }[],
+) {
+  return bills.reduce(
+    (projectedValues, bill) => {
+      if (bill.type === "payday") {
+        projectedValues.currentBalance += bill.amount;
+      }
 
+      if (bill.type === "bill" || bill.type === "purchase") {
+        projectedValues.currentBalance -= bill.amount;
+      }
+
+      if (bill.type === "savings") {
+        projectedValues.currentBalance -= bill.amount;
+        projectedValues.savings += bill.amount;
+      }
+
+      return projectedValues;
+    },
+    {
+      currentBalance,
+      savings,
+    },
+  );
+}
+
+export async function getUserBankInfoAction() {
   const user = await requireUser();
+  await applyUnappliedBillsFromMonthStartThroughToday(user.id);
+
   const userBankInfo = await getUserBankInfo(user.id);
 
   return {
@@ -32,56 +64,71 @@ export async function getUserBankInfoAction() {
 }
 
 export async function getUserBankAnalyticsAction() {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
   const user = await requireUser();
-  const { startOfMonth } = getCurrentMonthRange();
+  await applyUnappliedBillsFromMonthStartThroughToday(user.id);
 
-  const weeklyBillsData = await getBillsByUserByWeek(user.id);
+  const userBankInfo = await getUserBankInfo(user.id);
+  const currentBalance = userBankInfo?.currentBalance ?? 0;
+  const savings = userBankInfo?.savings ?? 0;
 
-  const monthBills = await getBillsByUserForMonth(
+  const { startOfWeek, startOfNextWeek } = getCurrentWeekRange();
+  const { startOfNextMonth } = getCurrentMonthRange();
+  const startOfTomorrow = getStartOfNextDay();
+
+  const futureWeekBills = await getUnappliedBillsByRange(
     user.id,
-    startOfMonth.getFullYear(),
-    startOfMonth.getMonth() + 1,
+    startOfTomorrow,
+    startOfNextWeek,
   );
 
-  const monthlySavings = await getUsersSavingsForTheMonth(user.id);
+  const futureMonthBills = await getUnappliedBillsByRange(
+    user.id,
+    startOfTomorrow,
+    startOfNextMonth,
+  );
 
-  const monthlyAmount = monthBills.reduce((total, bill) => {
-    if (bill.type === "payday") {
-      return total - bill.amount;
-    }
+  const endOfWeek = getProjectedBankValues(
+    currentBalance,
+    savings,
+    futureWeekBills,
+  );
 
-    if (bill.type === "bill" || bill.type === "purchase") {
-      return total + bill.amount;
-    }
-
-    return total;
-  }, 0);
+  const endOfMonth = getProjectedBankValues(
+    currentBalance,
+    savings,
+    futureMonthBills,
+  );
 
   return {
-    ...weeklyBillsData,
-    monthlyAmount,
-    monthlySavings,
+    startOfWeek,
+    startOfNextWeek,
+    currentBalance,
+    savings,
+    endOfWeekBalance: endOfWeek.currentBalance,
+    endOfWeekSavings: endOfWeek.savings,
+    endOfMonthBalance: endOfMonth.currentBalance,
+    endOfMonthSavings: endOfMonth.savings,
   };
 }
 
 export async function updateBankStartingBalanceFormAction(formData: FormData) {
   const user = await requireUser();
-  const startingBalanceValue = Number(getStringValue(formData, "startingBalance"));
-  const startingSavingsBalanceValue = Number(getStringValue(formData, "startingSavings"));
+  const startingBalanceValue = Number(
+    getStringValue(formData, "startingBalance"),
+  );
+  const startingSavingsBalanceValue = Number(
+    getStringValue(formData, "startingSavings"),
+  );
 
   if (
-    !startingBalanceValue ||
-    Number.isNaN(
-      startingBalanceValue |
-        startingSavingsBalanceValue ||
-        Number.isNaN(startingSavingsBalanceValue),
-    )
+    !Number.isFinite(startingBalanceValue) ||
+    !Number.isFinite(startingSavingsBalanceValue) ||
+    startingBalanceValue < 0 ||
+    startingSavingsBalanceValue < 0
   ) {
     redirect(
       `/signup/addbankinfo?error=${encodeURIComponent(
-        "Enter a valid starting balance",
+        "Enter valid balances",
       )}`,
     );
   }

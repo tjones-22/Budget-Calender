@@ -141,8 +141,6 @@ export async function UpdateUserProfile({
   email,
   userId,
 }: UpdateUserProfileDBInput) {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
   const hashedPassword = password ? await hashPassword(password) : undefined;
 
   await prisma.user.update({
@@ -159,8 +157,6 @@ export async function UpdateUserProfile({
 }
 
 export async function deleteUser(userId: string) {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
   await prisma.user.delete({
     where: { id: userId },
   });

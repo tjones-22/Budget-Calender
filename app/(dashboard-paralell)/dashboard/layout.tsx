@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import IdleLogout from "@/app/components/IdleLogout";
 
 export const metadata: Metadata = {
-  title: "Budget Calender - Dashboard ",
+  title: "Budget Calendar - Dashboard",
   description:
     "Users dashboard containing bill notifications, types of bills for the day, and bank analytics",
 };
@@ -21,6 +22,8 @@ export default async function DashboardLayout({
 }>) {
   return (
     <main className="min-h-screen bg-white p-6 text-black dark:bg-gray-900 dark:text-white">
+      <IdleLogout />
+
       <div className="mx-auto max-w-5xl">
         {children}
 
@@ -35,8 +38,5 @@ export default async function DashboardLayout({
         {modal}
       </div>
     </main>
-    
-
-    
   );
 }

@@ -8,7 +8,7 @@ export default function CalenderPageError({
 }) {
   return (
     <div className="w-full rounded-lg border border-red-300 bg-red-50 p-4 text-red-900">
-      <p className="font-semibold">There was an error getting your calender.</p>
+      <p className="font-semibold">There was an error getting your calendar.</p>
 
       <button
         type="button"

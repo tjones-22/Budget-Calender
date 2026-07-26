@@ -3,17 +3,20 @@ import type { ReactNode } from "react";
 export type BillType = "payday" | "bill" | "purchase" | "savings";
 
 export type Bill = {
+  id?: string;
+  recurringBillId?: string;
+  isRecurring?: boolean;
   type: BillType;
   name: string;
-  date?: Date
+  date?: Date;
+  amount?: number;
 };
-export type Notification ={
-  id: string,
-  description:string,
-  sendDate: Date,
-  amount: number,
-  
-}
+export type Notification = {
+  id: string;
+  description: string;
+  sendDate: Date;
+  amount: number;
+};
 
 export type Day = {
   dayNumber: number;
@@ -44,16 +47,16 @@ export type LoginWithCredentialsInput = {
 export type UpdateBankStartingBalanceByUserIdInput = {
   userId: string;
   startingBalance: number;
-  startingSavings:number
+  startingSavings: number;
 };
 
 export type UpdateUserProfileDBInput = {
-  username?:string,
-  name:string,
-  password?:string,
-  email?:string,
-  userId:string,
-}
+  username?: string;
+  name: string;
+  password?: string;
+  email?: string;
+  userId: string;
+};
 
 export type SubmitButtonProps = {
   children: ReactNode;
@@ -66,5 +69,14 @@ export type AddBillInput = {
   type: BillType;
   date: Date;
   userId: string;
-  amount:number
+  amount: number;
+};
+
+export type addRecurringBillInput = {
+  name: string;
+  type: BillType;
+  amount: number;
+  frequency: string;
+  startDate: Date;
+  userId:string;
 };

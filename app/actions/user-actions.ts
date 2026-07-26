@@ -27,11 +27,7 @@ function getCredentials(formData: FormData) {
   };
 }
 
-async function signInWithGoogleRedirect(redirectTo: string, delayMs = 0) {
-  if (delayMs > 0) {
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-
+async function signInWithGoogleRedirect(redirectTo: string) {
   await signIn("google", {
     redirectTo,
   });
@@ -42,7 +38,7 @@ export async function signInWithGoogleAction() {
 }
 
 export async function signUpWithGoogleAction() {
-  await signInWithGoogleRedirect("/signup/addbankinfo", 3000);
+  await signInWithGoogleRedirect("/signup/addbankinfo");
 }
 
 export async function signOutAction() {
@@ -52,8 +48,6 @@ export async function signOutAction() {
 }
 
 export async function signUpWithCredentialsAction(formData: FormData) {
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
   const email = getStringValue(formData, "email");
   const name = getStringValue(formData, "name");
   const { username, password } = getCredentials(formData);
