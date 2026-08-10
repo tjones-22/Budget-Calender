@@ -4,7 +4,7 @@ import type {
   LoginWithCredentialsInput,
   SignUpWithCredentialsInput,
   UpdateUserProfileDBInput,
-} from "../../../types/types";
+} from "@/app/types/types";
 import { prisma } from "./prisma";
 
 const scryptAsync = promisify(scrypt);

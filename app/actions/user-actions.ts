@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import type {
   AuthFormState,
   UpdateUserProfileFormState,
-} from "../../types/types";
+} from "@/app/types/types";
 import { requireUser } from "../lib/auth/session";
 import {
   deleteUser,

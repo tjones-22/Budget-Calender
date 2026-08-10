@@ -1,6 +1,6 @@
 "use client";
 
-import type { SubmitButtonProps } from "../../types/types";
+import type { SubmitButtonProps } from "@/app/types/types";
 import { useFormStatus } from "react-dom";
 
 export default function SubmitButton({

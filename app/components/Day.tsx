@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Day } from "../../types/types";
+import { Day } from "@/app/types/types";
 import { billTypeDotStyles } from "../lib/bills";
 
 export default function DayCard({

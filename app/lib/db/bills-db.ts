@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { AddBillInput, addRecurringBillInput } from "@/types/types";
+import { AddBillInput, addRecurringBillInput } from "@/app/types/types";
 import { isBillType } from "../bills";
 import {
   getCurrentWeekRange,

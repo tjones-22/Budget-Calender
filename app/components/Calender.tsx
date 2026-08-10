@@ -1,4 +1,4 @@
-import type { Bill, Day } from "../../types/types";
+import type { Bill, Day } from "@/app/types/types";
 import Link from "next/link";
 import DayCard from "./Day";
 import {

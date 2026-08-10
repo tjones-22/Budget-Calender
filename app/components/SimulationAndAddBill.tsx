@@ -3,7 +3,7 @@
 import { MouseEvent, useState } from "react";
 import { AddBill } from "./AddBill";
 import CalenderSimulation from "./CalenderSimulation";
-import type { Bill } from "@/types/types";
+import type { Bill } from "@/app/types/types";
 
 type SimulationAndAddBillProps = {
   date?: string;
@@ -101,4 +101,3 @@ export default function SimulationAndAddBill({
     </div>
   );
 }
-

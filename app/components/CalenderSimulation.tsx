@@ -1,5 +1,5 @@
 import Calender from "./Calender";
-import type { Bill } from "@/types/types";
+import type { Bill } from "@/app/types/types";
 import { formatCurrency } from "../lib/format";
 type CalenderSimulationProps = {
   projectedBalance?: number | null;

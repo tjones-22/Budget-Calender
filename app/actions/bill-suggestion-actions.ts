@@ -1,6 +1,6 @@
 "use server";
 
-import type { BillType } from "@/types/types";
+import type { BillType } from "@/app/types/types";
 import {
   billTypeLabels,
   isBillType,

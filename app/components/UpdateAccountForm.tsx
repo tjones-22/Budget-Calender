@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import type { UpdateUserProfileFormState } from "../../types/types";
+import type { UpdateUserProfileFormState } from "@/app/types/types";
 import { updateUserProfileAction } from "../actions/user-actions";
 import SubmitButton from "./FormSubmitButton";
 

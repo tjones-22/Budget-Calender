@@ -1,4 +1,4 @@
-import type { BillType } from "../../types/types";
+import type { BillType } from "@/app/types/types";
 
 export const billTypes = ["payday", "bill", "purchase", "savings"] as const;
 

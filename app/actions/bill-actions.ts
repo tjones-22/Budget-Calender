@@ -17,7 +17,7 @@ import {
 } from "../lib/db/notifications";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import type { Bill, Notification } from "@/types/types";
+import type { Bill, Notification } from "@/app/types/types";
 import { isBillType, isRecurrenceOption } from "../lib/bills";
 import { parseLocalDate } from "../lib/dates";
 

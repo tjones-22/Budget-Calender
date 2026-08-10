@@ -1,7 +1,7 @@
 import { getUsersBillsAction } from "@/app/actions/bill-actions";
 import DayCard from "@/app/components/Day";
 import { getBillLabel, isBillType } from "@/app/lib/bills";
-import type { Bill, Day } from "@/types/types";
+import type { Bill, Day } from "@/app/types/types";
 import Link from "next/link";
 
 export default async function DaySlot() {

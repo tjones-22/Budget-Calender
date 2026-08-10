@@ -1,4 +1,4 @@
-import type { UpdateBankStartingBalanceByUserIdInput } from "@/types/types";
+import type { UpdateBankStartingBalanceByUserIdInput } from "@/app/types/types";
 import { prisma } from "./prisma";
 import {
   getBillsByDay,

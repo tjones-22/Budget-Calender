@@ -8,7 +8,7 @@ import {
   billTypes,
   suggestBillType,
 } from "../lib/bills";
-import type { BillType } from "@/types/types";
+import type { BillType } from "@/app/types/types";
 import SubmitButton from "./FormSubmitButton";
 
 export function AddBill({
