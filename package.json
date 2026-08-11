@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "docker:dev": "docker compose up --build",
+    "docker:down": "docker compose down",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
